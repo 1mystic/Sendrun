@@ -1,0 +1,1230 @@
+<title>Sendrun Campaign Console</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   SENDRUN — brand system
+   Ledger palette (ink / warm paper / vermillion)
+   Signal typography (Space Grotesk, bold, tight tracking)
+   Squared geometry: 3px radius throughout.
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --ink:        #14110F;
+  --ink-2:      #1C1815;
+  --ink-3:      #241F1B;
+  --paper:      #F5F1E8;
+  --accent:     #E4491F;
+  --accent-ink: #F5F1E8;
+  --accent-dim: rgba(228,73,31,.13);
+
+  --muted:  rgba(245,241,232,.48);
+  --faint:  rgba(245,241,232,.30);
+  --line:   rgba(245,241,232,.11);
+  --line-2: rgba(245,241,232,.18);
+
+  /* semantic — separate from accent */
+  --ok:   #7FB069;
+  --warn: #D9A441;
+  --crit: #E4491F;
+
+  --display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+  --r: 3px;
+  --ease: cubic-bezier(.16,1,.3,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--display);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button { font-family: inherit; cursor: pointer; }
+
+/* ── APP SHELL ─────────────────────────────────────────────── */
+.app {
+  display: grid;
+  grid-template-columns: clamp(216px, 15vw, 280px) 1fr;
+  min-height: 100vh;
+}
+@media (max-width: 860px) { .app { grid-template-columns: 1fr; } .side { display: none; } }
+
+.side {
+  border-right: 1px solid var(--line);
+  padding: 20px 0;
+  background: var(--ink);
+  position: sticky; top: 0; height: 100vh;
+  display: flex; flex-direction: column;
+}
+.brand {
+  display: flex; align-items: center; gap: 9px;
+  padding: 0 18px 22px; font-weight: 700;
+  letter-spacing: -.02em; font-size: 1.02rem;
+}
+.mark {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--accent); flex: none; position: relative;
+}
+.mark::after {
+  content:''; position: absolute; left: 5px; top: 5px;
+  width: 10px; height: 10px;
+  border-left: 2px solid var(--accent-ink);
+  border-bottom: 2px solid var(--accent-ink);
+}
+.navsec {
+  font-family: var(--mono); font-size: .6rem;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--faint); padding: 14px 18px 7px;
+}
+.navitem {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 18px; color: var(--muted);
+  font-size: .84rem; border: 0; background: none;
+  width: 100%; text-align: left;
+  border-left: 2px solid transparent;
+  transition: color .18s, background .18s;
+}
+.navitem:hover { color: var(--paper); background: rgba(245,241,232,.03); }
+.navitem[aria-current="true"] {
+  color: var(--paper); border-left-color: var(--accent);
+  background: rgba(245,241,232,.04); font-weight: 500;
+}
+.navitem svg { width: 15px; height: 15px; flex: none; opacity: .8; }
+.side-foot { margin-top: auto; padding: 16px 18px 0; border-top: 1px solid var(--line); }
+.org { font-size: .78rem; color: var(--muted); }
+.org b { display: block; color: var(--paper); font-weight: 500; font-size: .84rem; }
+
+.main { min-width: 0; display: flex; flex-direction: column; }
+
+/* ── TOPBAR ────────────────────────────────────────────────── */
+.top {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 14px 26px;
+  border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; background: rgba(20,17,15,.92);
+  backdrop-filter: blur(8px); z-index: 20;
+}
+.crumb { font-family: var(--mono); font-size: .7rem; letter-spacing: .05em; color: var(--muted); }
+.crumb b { color: var(--paper); font-weight: 500; }
+
+/* ── PRIMITIVES ────────────────────────────────────────────── */
+.btn {
+  font-family: var(--mono); font-size: .7rem; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase;
+  padding: 10px 18px; border-radius: var(--r);
+  background: var(--accent); color: var(--accent-ink);
+  border: 1px solid var(--accent);
+  transition: filter .2s, transform .2s var(--ease);
+}
+.btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+.btn:disabled { opacity: .34; cursor: not-allowed; }
+.btn.ghost { background: transparent; color: var(--paper); border-color: var(--line-2); }
+.btn.ghost:hover:not(:disabled) { border-color: var(--paper); }
+.btn.sm { padding: 6px 12px; font-size: .63rem; }
+
+.card {
+  background: var(--ink-2); border: 1px solid var(--line);
+  border-radius: var(--r); padding: clamp(18px, 1.6vw, 26px);
+}
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: .62rem; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 999px;
+  border: 1px solid var(--line-2); color: var(--muted);
+}
+.pill.on   { color: var(--ok);   border-color: rgba(127,176,105,.4);  background: rgba(127,176,105,.1); }
+.pill.run  { color: var(--accent); border-color: rgba(228,73,31,.45); background: var(--accent-dim); }
+.pill.warn { color: var(--warn); border-color: rgba(217,164,65,.4);  background: rgba(217,164,65,.1); }
+.pill.crit { color: var(--crit); border-color: rgba(228,73,31,.45); background: var(--accent-dim); }
+.pill .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.pill.run .dot { animation: blink 1.6s var(--ease) infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+h1.page {
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  letter-spacing: -.035em; line-height: 1.02;
+  margin: 0 0 6px; font-weight: 700; text-wrap: balance;
+}
+.lede { color: var(--muted); max-width: 62ch; line-height: 1.6; margin: 0; font-size: .88rem; }
+.sec {
+  font-family: var(--mono); font-size: .62rem;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--faint); display: flex; align-items: center; gap: 12px;
+  margin: 0 0 14px;
+}
+.sec::after { content:''; flex:1; height:1px; background: var(--line); }
+
+/* Scales into wide displays instead of stranding a narrow column in the
+   middle. 1800px keeps line lengths sane while using the real estate. */
+.body { padding: clamp(24px, 2.2vw, 40px); max-width: 1800px; width: 100%; }
+.mono { font-family: var(--mono); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ── SCREENS ───────────────────────────────────────────────── */
+.screen { display: none; animation: fade .4s var(--ease); }
+.screen.active { display: block; }
+@keyframes fade { from { opacity:0; transform: translateY(6px);} to { opacity:1; transform:none; } }
+
+/* ── STAT GRID ─────────────────────────────────────────────── */
+.grid4 { display: grid; grid-template-columns: repeat(4,1fr); gap: clamp(12px, 1.1vw, 18px); }
+.grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: clamp(12px, 1.1vw, 18px); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(12px, 1.1vw, 18px); }
+@media (max-width: 900px){ .grid4,.grid3,.grid2 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px){ .grid4,.grid3,.grid2 { grid-template-columns: 1fr; } }
+
+/* Stat cards: the accent rail is the card's left edge, so the card owns
+   the padding rather than the inner element. Generous vertical rhythm —
+   these are the first thing read on the page. */
+.card.stat {
+  padding: clamp(18px, 1.5vw, 24px) clamp(18px, 1.6vw, 26px);
+  border-left-width: 3px; border-left-style: solid;
+  border-left-color: var(--line-2);
+  display: flex; flex-direction: column; gap: 8px; justify-content: center;
+}
+.stat { border-left: 3px solid var(--line-2); padding: 2px 0 2px 13px; }
+.stat.a { border-left-color: var(--accent); }
+.stat.g { border-left-color: var(--ok); }
+.stat.w { border-left-color: var(--warn); }
+.stat u {
+  display: block; text-decoration: none;
+  font-size: clamp(1.55rem, 2.1vw, 2.15rem);
+  letter-spacing: -.035em;
+  font-weight: 700; line-height: 1.04;
+  font-variant-numeric: tabular-nums;
+}
+.stat span {
+  font-family: var(--mono); font-size: .6rem; font-weight: 500;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+}
+
+/* ── TABLE ─────────────────────────────────────────────────── */
+.tw { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); }
+table { width: 100%; border-collapse: collapse; font-size: .82rem; min-width: 660px; }
+th {
+  font-family: var(--mono); font-size: .58rem;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--faint); text-align: left; font-weight: 400;
+  padding: 10px 14px; border-bottom: 1px solid var(--line);
+  background: var(--ink-2);
+}
+td { padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tbody tr { transition: background .16s; }
+tbody tr:hover { background: rgba(245,241,232,.026); }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr.clickable { cursor: pointer; }
+td.r { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ── PROGRESS ──────────────────────────────────────────────── */
+.bar { height: 7px; border-radius: 0; overflow: hidden; background: var(--line); display: flex; }
+.bar i { display: block; height: 100%; transition: width .5s var(--ease); }
+.bar i.d { background: var(--ok); }
+.bar i.s { background: var(--accent); }
+.bar i.r { background: var(--warn); }
+.bar i.f { background: rgba(228,73,31,.42); }
+.bar.mini { height: 4px; width: 84px; }
+
+/* ── STEPPER ───────────────────────────────────────────────── */
+.stepper { display: flex; gap: 0; margin-bottom: 24px; flex-wrap: wrap; }
+.stp {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px 8px 0; font-size: .78rem; color: var(--faint);
+}
+.stp b {
+  font-family: var(--mono); font-size: .62rem;
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 1px solid var(--line-2); display: grid; place-items: center;
+  font-weight: 400;
+}
+.stp.done { color: var(--muted); }
+.stp.done b { border-color: var(--ok); color: var(--ok); }
+.stp.now { color: var(--paper); }
+.stp.now b { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.stp::after { content: '→'; margin-left: 14px; color: var(--line-2); }
+.stp:last-child::after { display: none; }
+
+/* ── FORM ──────────────────────────────────────────────────── */
+label.f { display: block; margin-bottom: 16px; }
+label.f > span {
+  display: block; font-family: var(--mono); font-size: .61rem;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 6px;
+}
+input.t, textarea.t, select.t {
+  width: 100%; background: var(--ink); color: var(--paper);
+  border: 1px solid var(--line-2); border-radius: var(--r);
+  padding: 10px 12px; font-family: var(--display); font-size: .86rem;
+  transition: border-color .18s;
+}
+textarea.t { font-family: var(--mono); font-size: .78rem; line-height: 1.7; resize: vertical; }
+input.t:focus, textarea.t:focus, select.t:focus { border-color: var(--accent); outline: none; }
+.hint { font-family: var(--mono); font-size: .62rem; color: var(--faint); margin-top: 5px; }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: .66rem; font-weight: 500;
+  padding: 6px 11px; border-radius: var(--r);
+  border: 1px solid var(--line-2); color: var(--muted);
+  background: transparent; transition: all .18s;
+}
+.chip:hover { border-color: var(--paper); color: var(--paper); }
+.chip[aria-pressed="true"] {
+  border-color: var(--accent); color: var(--accent);
+  background: var(--accent-dim); font-weight: 700;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 7px; }
+
+.var {
+  font-family: var(--mono); font-size: .72rem;
+  background: var(--accent-dim); color: var(--accent);
+  padding: 1px 5px; border-radius: 2px;
+}
+
+/* ── PREFLIGHT ─────────────────────────────────────────────── */
+.check {
+  display: grid; grid-template-columns: 18px 1fr auto;
+  gap: 12px; align-items: start;
+  padding: 13px 0; border-bottom: 1px solid var(--line);
+}
+.check:last-child { border-bottom: 0; }
+.check .ic { font-size: .9rem; line-height: 1.4; }
+.check h4 { margin: 0 0 3px; font-size: .86rem; font-weight: 600; letter-spacing: -.01em; }
+.check p { margin: 0; font-size: .78rem; color: var(--muted); line-height: 1.55; }
+.check .fix {
+  font-family: var(--mono); font-size: .61rem;
+  color: var(--accent); background: none; border: 0;
+  text-decoration: underline; text-underline-offset: 3px; padding: 0;
+}
+
+.gauge { display: flex; align-items: baseline; gap: 10px; }
+.gauge u {
+  text-decoration: none; font-size: 2.6rem; font-weight: 700;
+  letter-spacing: -.04em; font-variant-numeric: tabular-nums; line-height: 1;
+}
+.gauge span { font-family: var(--mono); font-size: .68rem; color: var(--muted); }
+
+/* ── FEED ──────────────────────────────────────────────────── */
+.feed { max-height: 320px; overflow-y: auto; }
+.frow {
+  display: grid; grid-template-columns: 62px 16px 1fr auto;
+  gap: 10px; align-items: center;
+  font-family: var(--mono); font-size: .7rem;
+  padding: 6px 0; border-bottom: 1px solid var(--line);
+  color: var(--muted); animation: slide .38s var(--ease);
+}
+@keyframes slide { from { opacity:0; transform: translateX(-5px); } to { opacity:1; transform:none; } }
+.frow b { color: var(--paper); font-weight: 400; }
+.frow .g { color: var(--ok); }
+.frow .w { color: var(--warn); }
+.frow .c { color: var(--crit); }
+
+/* ── PREVIEW ───────────────────────────────────────────────── */
+.mail {
+  background: var(--paper); color: var(--ink);
+  border-radius: var(--r); padding: 22px; font-size: .84rem; line-height: 1.66;
+}
+.mail .mh { border-bottom: 1px solid rgba(20,17,15,.12); padding-bottom: 12px; margin-bottom: 14px; }
+.mail .mh div { font-family: var(--mono); font-size: .66rem; color: rgba(20,17,15,.55); }
+.mail .mh h5 { margin: 6px 0 0; font-size: 1rem; letter-spacing: -.02em; font-weight: 600; }
+.mail a { color: var(--accent); }
+.mail .cta {
+  display: inline-block; background: var(--accent); color: var(--paper);
+  padding: 9px 18px; border-radius: 2px; text-decoration: none;
+  font-size: .78rem; font-weight: 500; margin: 8px 0;
+}
+
+/* ── CHAOS ─────────────────────────────────────────────────── */
+.knob {
+  display: grid; grid-template-columns: 1fr 52px;
+  gap: 12px; align-items: center; padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+.knob:last-child { border-bottom: 0; }
+.knob label { font-size: .8rem; }
+.knob .kd { font-family: var(--mono); font-size: .62rem; color: var(--faint); display: block; margin-top: 2px; }
+.knob output { font-family: var(--mono); font-size: .72rem; color: var(--accent); text-align: right; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+
+.banner {
+  border: 1px solid rgba(228,73,31,.4); background: var(--accent-dim);
+  border-radius: var(--r); padding: 13px 15px;
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+}
+.banner p { margin: 0; font-size: .82rem; line-height: 1.5; }
+.banner b { color: var(--accent); }
+
+.empty { text-align: center; padding: 40px 20px; color: var(--faint); }
+.spacer { height: 22px; }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.inline { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
+</style>
+
+<div class="app">
+  <!-- ══════ SIDEBAR ══════ -->
+  <aside class="side">
+    <div class="brand"><span class="mark"></span> Sendrun</div>
+
+    <div class="navsec">Workspace</div>
+    <button class="navitem" data-go="dash" aria-current="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+      Overview
+    </button>
+    <button class="navitem" data-go="campaigns">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 4h16v16H4z"/><path d="m4 7 8 6 8-6"/></svg>
+      Campaigns
+    </button>
+    <button class="navitem" data-go="contacts">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 6a3 3 0 0 1 0 6"/><path d="M18 20a5 5 0 0 0-2-4"/></svg>
+      Contacts
+    </button>
+
+    <div class="navsec">Reliability</div>
+    <button class="navitem" data-go="jobs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v4"/><circle cx="12" cy="12" r="4"/><path d="M12 17v4"/><path d="m5 7 3 2"/><path d="m16 15 3 2"/></svg>
+      Job inspector
+    </button>
+    <button class="navitem" data-go="chaos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m13 2-9 12h7l-2 8 9-12h-7z"/></svg>
+      Chaos mode
+    </button>
+
+    <div class="side-foot">
+      <div class="org"><b>AI Research Club</b>4 members · Owner</div>
+    </div>
+  </aside>
+
+  <!-- ══════ MAIN ══════ -->
+  <div class="main">
+    <div class="top">
+      <div class="crumb" id="crumb">Workspace / <b>Overview</b></div>
+      <div class="inline">
+        <span class="pill run" id="liveflag" hidden><span class="dot"></span> 1 running</span>
+        <button class="btn" data-go="compose">New campaign</button>
+      </div>
+    </div>
+
+    <div class="body">
+
+      <!-- ═══ 1. OVERVIEW ═══ -->
+      <section class="screen active" id="s-dash">
+        <h1 class="page">Overview</h1>
+        <p class="lede">Four campaigns this month. One running now.</p>
+        <div class="spacer"></div>
+
+        <div class="grid4">
+          <div class="card stat a"><u class="num">24,918</u><span>Emails sent</span></div>
+          <div class="card stat g"><u class="num">97.4%</u><span>Delivery rate</span></div>
+          <div class="card stat w"><u class="num">31.2%</u><span>Open rate</span></div>
+          <div class="card stat"><u class="num">0</u><span>Duplicate sends</span></div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="sec">Running now</div>
+        <div class="card" id="dash-live" style="cursor:pointer" data-go="live">
+          <div class="row-between" style="margin-bottom:14px">
+            <div>
+              <div style="font-weight:600;font-size:1rem;letter-spacing:-.02em">Hackathon Speaker Outreach</div>
+              <div class="mono" style="font-size:.66rem;color:var(--faint);margin-top:3px">campaign_8231 · started 14:01:04</div>
+            </div>
+            <span class="pill run"><span class="dot"></span> Running</span>
+          </div>
+          <div class="bar" id="dash-bar">
+            <i class="d" style="width:59%"></i><i class="s" style="width:8%"></i><i class="r" style="width:3%"></i><i class="f" style="width:2%"></i>
+          </div>
+          <div class="row-between" style="margin-top:11px">
+            <span class="mono num" style="font-size:.72rem;color:var(--muted)"><b style="color:var(--paper)" id="dash-done">7,821</b> / 10,000 attempted</span>
+            <span class="mono" style="font-size:.66rem;color:var(--faint)">~4 min remaining</span>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="sec">Recent campaigns</div>
+        <div class="tw"><table>
+          <thead><tr><th>Campaign</th><th>Recipients</th><th>Delivered</th><th>Opened</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr class="clickable" data-go="report"><td>Sponsor Outreach — Q3</td><td class="num">412</td><td class="num">401</td><td class="num">147</td><td><span class="pill on"><span class="dot"></span>Completed</span></td></tr>
+            <tr class="clickable" data-go="report"><td>Volunteer Recruitment</td><td class="num">1,204</td><td class="num">1,166</td><td class="num">388</td><td><span class="pill on"><span class="dot"></span>Completed</span></td></tr>
+            <tr class="clickable" data-go="report"><td>Workshop Reminder</td><td class="num">308</td><td class="num">297</td><td class="num">201</td><td><span class="pill on"><span class="dot"></span>Completed</span></td></tr>
+            <tr class="clickable" data-go="compose"><td>Demo Day Invitations</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td><span class="pill">Draft</span></td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <!-- ═══ 2. CAMPAIGNS ═══ -->
+      <section class="screen" id="s-campaigns">
+        <div class="row-between">
+          <div><h1 class="page">Campaigns</h1><p class="lede">Every campaign, its execution state, and its delivery outcome.</p></div>
+          <button class="btn" data-go="compose">New campaign</button>
+        </div>
+        <div class="spacer"></div>
+        <div class="chips" style="margin-bottom:14px">
+          <button class="chip" aria-pressed="true">All</button>
+          <button class="chip">Running</button>
+          <button class="chip">Completed</button>
+          <button class="chip">Draft</button>
+        </div>
+        <div class="tw"><table>
+          <thead><tr><th>Campaign</th><th>Event</th><th>Recipients</th><th>Progress</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr class="clickable" data-go="live">
+              <td><b>Hackathon Speaker Outreach</b><div class="mono" style="font-size:.62rem;color:var(--faint)">campaign_8231</div></td>
+              <td>Hackathon 2026</td><td class="num">10,000</td>
+              <td><div class="bar mini"><i class="d" style="width:74%"></i><i class="s" style="width:8%"></i></div></td>
+              <td><span class="pill run"><span class="dot"></span>Running</span></td>
+              <td class="r"><button class="btn sm ghost" data-go="live">Watch</button></td>
+            </tr>
+            <tr class="clickable" data-go="report">
+              <td><b>Sponsor Outreach — Q3</b><div class="mono" style="font-size:.62rem;color:var(--faint)">campaign_8180</div></td>
+              <td>Hackathon 2026</td><td class="num">412</td>
+              <td><div class="bar mini"><i class="d" style="width:97%"></i><i class="f" style="width:3%"></i></div></td>
+              <td><span class="pill on"><span class="dot"></span>Completed</span></td>
+              <td class="r"><button class="btn sm ghost" data-go="report">Report</button></td>
+            </tr>
+            <tr class="clickable" data-go="report">
+              <td><b>Volunteer Recruitment</b><div class="mono" style="font-size:.62rem;color:var(--faint)">campaign_8104</div></td>
+              <td>Hackathon 2026</td><td class="num">1,204</td>
+              <td><div class="bar mini"><i class="d" style="width:96%"></i><i class="f" style="width:4%"></i></div></td>
+              <td><span class="pill on"><span class="dot"></span>Completed</span></td>
+              <td class="r"><button class="btn sm ghost" data-go="report">Report</button></td>
+            </tr>
+            <tr class="clickable" data-go="compose">
+              <td><b>Demo Day Invitations</b><div class="mono" style="font-size:.62rem;color:var(--faint)">campaign_8244</div></td>
+              <td>Demo Day</td><td class="num">—</td>
+              <td><span class="mono" style="font-size:.66rem;color:var(--faint)">not launched</span></td>
+              <td><span class="pill">Draft</span></td>
+              <td class="r"><button class="btn sm ghost" data-go="compose">Edit</button></td>
+            </tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <!-- ═══ 3. CONTACTS ═══ -->
+      <section class="screen" id="s-contacts">
+        <h1 class="page">Contacts</h1>
+        <p class="lede">1,847 contacts across 6 groups. Select by tag, group, or smart filter.</p>
+        <div class="spacer"></div>
+        <div class="chips" style="margin-bottom:16px">
+          <button class="chip" aria-pressed="true">All · 1,847</button>
+          <button class="chip">Speakers · 127</button>
+          <button class="chip">Alumni · 402</button>
+          <button class="chip">Sponsors · 64</button>
+          <button class="chip">Participants · 1,204</button>
+          <button class="chip">+ Smart filter</button>
+        </div>
+        <div class="tw"><table>
+          <thead><tr><th>Name</th><th>Email</th><th>Tags</th><th>Sent</th><th>Engagement</th><th>Risk</th></tr></thead>
+          <tbody>
+            <tr><td><b>Rahul Menon</b></td><td class="mono" style="font-size:.74rem">rahul@example.com</td><td><span class="pill">speaker</span> <span class="pill">AI</span></td><td class="num">7</td><td class="num" style="color:var(--ok)">82%</td><td><span class="pill on">low</span></td></tr>
+            <tr><td><b>Ananya Iyer</b></td><td class="mono" style="font-size:.74rem">ananya@example.com</td><td><span class="pill">alumni</span></td><td class="num">4</td><td class="num" style="color:var(--warn)">61%</td><td><span class="pill on">low</span></td></tr>
+            <tr><td><b>Arjun Desai</b></td><td class="mono" style="font-size:.74rem">arjun@example.com</td><td><span class="pill">speaker</span></td><td class="num">9</td><td class="num" style="color:var(--muted)">34%</td><td><span class="pill warn">medium</span></td></tr>
+            <tr><td><b>Priya Nair</b></td><td class="mono" style="font-size:.74rem">priya@example.com</td><td><span class="pill">sponsor</span></td><td class="num">3</td><td class="num" style="color:var(--ok)">77%</td><td><span class="pill on">low</span></td></tr>
+            <tr><td><b>Neha Kulkarni</b></td><td class="mono" style="font-size:.74rem">neha@example.com</td><td><span class="pill">alumni</span> <span class="pill">ML</span></td><td class="num">6</td><td class="num" style="color:var(--ok)">88%</td><td><span class="pill on">low</span></td></tr>
+            <tr><td><b>Vikram Shah</b></td><td class="mono" style="font-size:.74rem">vikram@old-domain.test</td><td><span class="pill">participant</span></td><td class="num">11</td><td class="num" style="color:var(--faint)">4%</td><td><span class="pill crit">high</span></td></tr>
+          </tbody>
+        </table></div>
+        <p class="hint">Engagement and risk are model predictions, shown with their inputs on the contact detail page.</p>
+      </section>
+
+      <!-- ═══ 4. COMPOSE ═══ -->
+      <section class="screen" id="s-compose">
+        <h1 class="page">New campaign</h1>
+        <p class="lede">Pick recipients, write once, personalize per person.</p>
+        <div class="spacer"></div>
+        <div class="stepper">
+          <div class="stp now"><b>1</b> Compose</div>
+          <div class="stp"><b>2</b> Preflight</div>
+          <div class="stp"><b>3</b> Approve</div>
+          <div class="stp"><b>4</b> Execute</div>
+        </div>
+
+        <div class="grid2" style="align-items:start;gap:22px">
+          <div class="stack">
+            <div class="card">
+              <div class="sec" style="margin-bottom:16px">Recipients</div>
+              <label class="f"><span>Select by</span>
+                <div class="chips">
+                  <button class="chip" aria-pressed="true" data-rec="127">Tag: speaker</button>
+                  <button class="chip" data-rec="402">Group: alumni</button>
+                  <button class="chip" data-rec="64">Group: sponsors</button>
+                  <button class="chip" data-rec="1204">Tag: participant</button>
+                </div>
+              </label>
+              <div class="row-between" style="border-top:1px solid var(--line);padding-top:12px">
+                <span class="mono" style="font-size:.72rem;color:var(--muted)">Resolved recipients</span>
+                <span class="mono num" style="font-size:1.1rem;font-weight:600" id="rec-count">127</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="sec" style="margin-bottom:16px">Message</div>
+              <label class="f"><span>Subject</span>
+                <input class="t" id="f-subject" value="Speak at AI Hackathon 2026, {{first_name}}?">
+              </label>
+              <label class="f"><span>Body</span>
+                <textarea class="t" rows="9" id="f-body">Hi {{first_name}},
+
+We'd love to invite you to speak at {{event_name}}.
+
+Your work in {{specialization}} is exactly what our attendees want to hear about.
+
+Apply here: https://airesearch.club/hackathon-2026/speak
+
+— The AI Research Club</textarea>
+              </label>
+              <div class="inline">
+                <span class="hint" style="margin:0">Variables:</span>
+                <span class="var">{{first_name}}</span><span class="var">{{event_name}}</span><span class="var">{{specialization}}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="stack">
+            <div class="card">
+              <div class="row-between" style="margin-bottom:14px">
+                <div class="sec" style="margin:0">Preview as recipient</div>
+                <select class="t" id="f-who" style="width:auto;font-size:.76rem;padding:6px 9px">
+                  <option value="0">Rahul Menon</option>
+                  <option value="1">Ananya Iyer</option>
+                  <option value="2">Arjun Desai</option>
+                </select>
+              </div>
+              <div class="mail">
+                <div class="mh">
+                  <div>To: <span id="p-to">rahul@example.com</span></div>
+                  <h5 id="p-subj">Speak at AI Hackathon 2026, Rahul?</h5>
+                </div>
+                <div id="p-body" style="white-space:pre-wrap"></div>
+              </div>
+            </div>
+            <div class="card" style="border-color:rgba(217,164,65,.35);background:rgba(217,164,65,.06)">
+              <div class="inline" style="align-items:flex-start">
+                <span style="color:var(--warn)">⚠</span>
+                <p style="margin:0;font-size:.8rem;line-height:1.55;color:var(--muted)">
+                  <b style="color:var(--paper)">7 of 127 recipients</b> have no value for <span class="var">specialization</span>.
+                  Preflight will show you exactly who.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="inline">
+          <button class="btn" data-go="preflight">Run preflight →</button>
+          <button class="btn ghost">Save draft</button>
+        </div>
+      </section>
+
+      <!-- ═══ 5. PREFLIGHT ═══ -->
+      <section class="screen" id="s-preflight">
+        <h1 class="page">Preflight report</h1>
+        <p class="lede">Checks run before anything is sent. You decide what to do about each one.</p>
+        <div class="spacer"></div>
+        <div class="stepper">
+          <div class="stp done"><b>✓</b> Compose</div>
+          <div class="stp now"><b>2</b> Preflight</div>
+          <div class="stp"><b>3</b> Approve</div>
+          <div class="stp"><b>4</b> Execute</div>
+        </div>
+
+        <div class="grid3" style="margin-bottom:20px">
+          <div class="card">
+            <div class="sec" style="margin-bottom:10px">Spam risk</div>
+            <div class="gauge"><u style="color:var(--ok)">18</u><span>/ 100 · low</span></div>
+            <p class="hint" style="margin-top:8px">Heuristic score from link density, caps ratio, and promotional terms. Not a prediction of any provider's filter.</p>
+          </div>
+          <div class="card">
+            <div class="sec" style="margin-bottom:10px">Personalization</div>
+            <div class="gauge"><u style="color:var(--warn)">91</u><span>/ 100</span></div>
+            <p class="hint" style="margin-top:8px">120 of 127 recipients resolve every variable.</p>
+          </div>
+          <div class="card">
+            <div class="sec" style="margin-bottom:10px">Predicted delivery</div>
+            <div class="gauge"><u style="color:var(--ok)">96.1<span style="font-size:.5em">%</span></u><span></span></div>
+            <p class="hint" style="margin-top:8px">Bounce model over recipient history. 5 addresses flagged high-risk.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="sec">Checks</div>
+          <div class="check">
+            <span class="ic" style="color:var(--warn)">⚠</span>
+            <div><h4>7 recipients missing <span class="var">specialization</span></h4>
+              <p>The sentence referencing it would read broken. Options: use a fallback phrase, or exclude these 7.</p></div>
+            <button class="fix">Set fallback</button>
+          </div>
+          <div class="check">
+            <span class="ic" style="color:var(--crit)">✕</span>
+            <div><h4>5 addresses are high bounce risk</h4>
+              <p>Previously hard-bounced or inactive for 18+ months. Sending to them costs you sender reputation.</p></div>
+            <button class="fix">Exclude 5</button>
+          </div>
+          <div class="check">
+            <span class="ic" style="color:var(--ok)">✓</span>
+            <div><h4>All 1 link resolves</h4>
+              <p><span class="mono" style="font-size:.72rem">airesearch.club/hackathon-2026/speak</span> returned 200 · no redirect chain.</p></div>
+            <span class="mono" style="font-size:.62rem;color:var(--faint)">200 OK</span>
+          </div>
+          <div class="check">
+            <span class="ic" style="color:var(--ok)">✓</span>
+            <div><h4>Subject line is well-formed</h4>
+              <p>46 characters, no all-caps, personalized. Reads naturally in an inbox list.</p></div>
+            <span class="mono" style="font-size:.62rem;color:var(--faint)">46 chars</span>
+          </div>
+          <div class="check">
+            <span class="ic" style="color:var(--ok)">✓</span>
+            <div><h4>No sensitive content detected</h4>
+              <p>No credentials, personal data, or unapproved claims in the body.</p></div>
+            <span class="mono" style="font-size:.62rem;color:var(--faint)">clean</span>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="inline">
+          <button class="btn" data-go="approve">Continue to approval →</button>
+          <button class="btn ghost" data-go="compose">← Back to compose</button>
+        </div>
+      </section>
+
+      <!-- ═══ 6. APPROVE ═══ -->
+      <section class="screen" id="s-approve">
+        <h1 class="page">Approve and launch</h1>
+        <p class="lede">Nothing has been sent yet. This is the last reversible moment.</p>
+        <div class="spacer"></div>
+        <div class="stepper">
+          <div class="stp done"><b>✓</b> Compose</div>
+          <div class="stp done"><b>✓</b> Preflight</div>
+          <div class="stp now"><b>3</b> Approve</div>
+          <div class="stp"><b>4</b> Execute</div>
+        </div>
+
+        <div class="grid2" style="align-items:start;gap:22px">
+          <div class="card">
+            <div class="sec">Summary</div>
+            <table style="min-width:0"><tbody>
+              <tr><td style="color:var(--muted)">Campaign</td><td class="r"><b>Hackathon Speaker Outreach</b></td></tr>
+              <tr><td style="color:var(--muted)">Recipients</td><td class="r"><b class="num">122</b> <span class="mono" style="font-size:.64rem;color:var(--faint)">(127 − 5 excluded)</span></td></tr>
+              <tr><td style="color:var(--muted)">Independent jobs</td><td class="r"><b class="num">122</b></td></tr>
+              <tr><td style="color:var(--muted)">Batches</td><td class="r"><b class="num">1</b> <span class="mono" style="font-size:.64rem;color:var(--faint)">(500/batch)</span></td></tr>
+              <tr><td style="color:var(--muted)">Send rate</td><td class="r"><b class="num">8</b> <span class="mono" style="font-size:.64rem;color:var(--faint)">/sec</span></td></tr>
+              <tr><td style="color:var(--muted)">Est. duration</td><td class="r"><b>~16 sec</b></td></tr>
+            </tbody></table>
+          </div>
+
+          <div class="stack">
+            <div class="banner">
+              <p><b>This action sends real email.</b> Once launched, delivered messages cannot be recalled. Remaining queued jobs can be cancelled at any time.</p>
+            </div>
+            <div class="card">
+              <div class="sec">Durability guarantees</div>
+              <div style="display:flex;flex-direction:column;gap:9px;font-size:.8rem;color:var(--muted);line-height:1.5">
+                <div class="inline"><span style="color:var(--ok)">✓</span> Each recipient is an independent job with its own retry budget</div>
+                <div class="inline"><span style="color:var(--ok)">✓</span> Every send carries an idempotency key — a retry cannot duplicate it</div>
+                <div class="inline"><span style="color:var(--ok)">✓</span> If a worker dies, its leases expire and its jobs are re-picked</div>
+                <div class="inline"><span style="color:var(--ok)">✓</span> Close this tab freely; execution is server-side</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="inline">
+          <button class="btn" id="launch-btn">Launch 122 jobs</button>
+          <button class="btn ghost" data-go="preflight">← Back to preflight</button>
+        </div>
+      </section>
+
+      <!-- ═══ 7. LIVE ═══ -->
+      <section class="screen" id="s-live">
+        <div class="row-between">
+          <div>
+            <h1 class="page">Hackathon Speaker Outreach</h1>
+            <p class="lede mono" style="font-size:.74rem">campaign_8231 · launched 14:01:04 · <span id="live-elapsed">00:00</span> elapsed</p>
+          </div>
+          <div class="inline">
+            <span class="pill run" id="live-status"><span class="dot"></span> Running</span>
+            <button class="btn ghost sm" id="pause-btn">Pause</button>
+            <button class="btn ghost sm" id="kill-btn" style="border-color:rgba(228,73,31,.5);color:var(--accent)">Kill worker</button>
+          </div>
+        </div>
+        <div class="spacer"></div>
+
+        <div id="kill-banner" hidden style="margin-bottom:18px">
+          <div class="banner">
+            <p><b>Worker killed mid-flight.</b> <span id="kill-detail">3 leases orphaned.</span> The reaper expires them, and the jobs are re-picked by another worker. Idempotency keys mean the re-run cannot duplicate a send.</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:18px">
+          <div class="row-between" style="margin-bottom:12px">
+            <span style="font-size:1.9rem;font-weight:700;letter-spacing:-.04em" class="num" id="live-done">0</span>
+            <span class="mono" style="font-size:.74rem;color:var(--muted)">of <b class="num" style="color:var(--paper)">122</b> attempted</span>
+          </div>
+          <div class="bar" style="height:9px">
+            <i class="d" id="b-d" style="width:0%"></i><i class="s" id="b-s" style="width:0%"></i><i class="r" id="b-r" style="width:0%"></i><i class="f" id="b-f" style="width:0%"></i>
+          </div>
+        </div>
+
+        <div class="grid4" style="margin-bottom:18px">
+          <div class="card stat g"><u class="num" id="k-d">0</u><span>Delivered</span></div>
+          <div class="card stat a"><u class="num" id="k-s">0</u><span>Sending</span></div>
+          <div class="card stat w"><u class="num" id="k-r">0</u><span>Retrying</span></div>
+          <div class="card stat"><u class="num" id="k-f">0</u><span>Failed</span></div>
+        </div>
+
+        <div class="grid2" style="align-items:start;gap:18px">
+          <div class="card">
+            <div class="sec">Activity</div>
+            <div class="feed" id="feed"></div>
+          </div>
+          <div class="stack">
+            <div class="card">
+              <div class="sec">Integrity</div>
+              <table style="min-width:0"><tbody>
+                <tr><td style="color:var(--muted)">Provider calls</td><td class="r mono num" id="i-calls">0</td></tr>
+                <tr><td style="color:var(--muted)">Unique message IDs</td><td class="r mono num" id="i-ids">0</td></tr>
+                <tr><td style="color:var(--muted)">Duplicate sends</td><td class="r mono num" style="color:var(--ok)" id="i-dupes">0</td></tr>
+                <tr><td style="color:var(--muted)">Idempotency hits</td><td class="r mono num" id="i-hits">0</td></tr>
+                <tr><td style="color:var(--muted)">Orphan webhooks</td><td class="r mono num" id="i-orph">0</td></tr>
+              </tbody></table>
+              <p class="hint" style="margin-top:10px">Duplicate sends must stay at zero through any number of crashes. That is the invariant the whole system exists to hold.</p>
+            </div>
+            <div class="card">
+              <div class="sec">Workers</div>
+              <div id="workers" style="display:flex;flex-direction:column;gap:8px"></div>
+            </div>
+          </div>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn ghost" data-go="report" id="toreport" hidden>View completion report →</button>
+      </section>
+
+      <!-- ═══ 8. REPORT ═══ -->
+      <section class="screen" id="s-report">
+        <div class="row-between">
+          <div>
+            <h1 class="page">Campaign report</h1>
+            <p class="lede mono" style="font-size:.74rem">campaign_8231 · completed in 00:16 · all sends attempted</p>
+          </div>
+          <span class="pill on"><span class="dot"></span> Completed</span>
+        </div>
+        <div class="spacer"></div>
+
+        <div class="grid4" style="margin-bottom:20px">
+          <div class="card stat g"><u class="num">117</u><span>Delivered</span></div>
+          <div class="card stat w"><u class="num">4</u><span>Bounced</span></div>
+          <div class="card stat"><u class="num">1</u><span>Failed</span></div>
+          <div class="card stat a"><u class="num">95.9%</u><span>Delivery rate</span></div>
+        </div>
+
+        <div class="grid2" style="align-items:start;gap:18px;margin-bottom:18px">
+          <div class="card">
+            <div class="sec">What the analyst found</div>
+            <p style="font-size:.86rem;line-height:1.65;color:var(--muted);margin:0 0 12px">
+              Delivery was <b style="color:var(--paper)">95.9%</b>, slightly below your 97.4% average.
+              All four bounces came from a single domain whose mail server rejected the messages —
+              those contacts were imported in 2023 and have not engaged since.
+            </p>
+            <p style="font-size:.86rem;line-height:1.65;color:var(--muted);margin:0 0 12px">
+              Open rate reached <b style="color:var(--paper)">38%</b> within two hours, which is
+              <b style="color:var(--ok)">11 points above</b> your previous speaker campaign. The shorter
+              subject line is the most likely cause.
+            </p>
+            <div style="border-top:1px solid var(--line);padding-top:12px">
+              <div class="mono" style="font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:8px">Suggested</div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div class="inline"><span style="color:var(--accent)">→</span> <span style="font-size:.82rem">Retire 4 bounced addresses</span> <button class="btn sm ghost">Apply</button></div>
+                <div class="inline"><span style="color:var(--accent)">→</span> <span style="font-size:.82rem">Keep subject lines under 50 characters</span> <button class="btn sm ghost">Note it</button></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stack">
+            <div class="card">
+              <div class="sec">Delivery settling</div>
+              <p class="hint" style="margin:0 0 12px">The campaign completed when every send was attempted. Provider events continued arriving for 41 minutes afterward.</p>
+              <table style="min-width:0"><tbody>
+                <tr><td style="color:var(--muted)">Sends attempted</td><td class="r mono num">122</td></tr>
+                <tr><td style="color:var(--muted)">Events received</td><td class="r mono num">389</td></tr>
+                <tr><td style="color:var(--muted)">Duplicates discarded</td><td class="r mono num">37</td></tr>
+                <tr><td style="color:var(--muted)">Out-of-order applied</td><td class="r mono num">12</td></tr>
+                <tr><td style="color:var(--muted)">Settled</td><td class="r mono num" style="color:var(--ok)">100%</td></tr>
+              </tbody></table>
+            </div>
+            <div class="card">
+              <div class="sec">Engagement</div>
+              <table style="min-width:0"><tbody>
+                <tr><td style="color:var(--muted)">Opened</td><td class="r mono num">46 <span style="color:var(--faint)">(38%)</span></td></tr>
+                <tr><td style="color:var(--muted)">Clicked</td><td class="r mono num">19 <span style="color:var(--faint)">(16%)</span></td></tr>
+                <tr><td style="color:var(--muted)">Replied</td><td class="r mono num">7 <span style="color:var(--faint)">(6%)</span></td></tr>
+                <tr><td style="color:var(--muted)">Complaints</td><td class="r mono num" style="color:var(--ok)">0</td></tr>
+              </tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="sec">Failures</div>
+          <div class="tw" style="border:0"><table>
+            <thead><tr><th>Recipient</th><th>Outcome</th><th>Attempts</th><th>Reason</th></tr></thead>
+            <tbody>
+              <tr><td class="mono" style="font-size:.74rem">vikram@old-domain.test</td><td><span class="pill crit">Bounced</span></td><td class="num">1</td><td style="color:var(--muted);font-size:.78rem">550 — mailbox unavailable</td></tr>
+              <tr><td class="mono" style="font-size:.74rem">s.rao@old-domain.test</td><td><span class="pill crit">Bounced</span></td><td class="num">1</td><td style="color:var(--muted);font-size:.78rem">550 — mailbox unavailable</td></tr>
+              <tr><td class="mono" style="font-size:.74rem">k.patel@old-domain.test</td><td><span class="pill crit">Bounced</span></td><td class="num">1</td><td style="color:var(--muted);font-size:.78rem">550 — mailbox unavailable</td></tr>
+              <tr><td class="mono" style="font-size:.74rem">m.joshi@old-domain.test</td><td><span class="pill crit">Bounced</span></td><td class="num">1</td><td style="color:var(--muted);font-size:.78rem">550 — mailbox unavailable</td></tr>
+              <tr><td class="mono" style="font-size:.74rem">t.banerjee@example.com</td><td><span class="pill warn">Failed</span></td><td class="num">5</td><td style="color:var(--muted);font-size:.78rem">Provider 503 after 5 attempts → dead letter</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ═══ 9. JOB INSPECTOR ═══ -->
+      <section class="screen" id="s-jobs">
+        <h1 class="page">Job inspector</h1>
+        <p class="lede">Every attempt of every job, and the provider events that resolved it.</p>
+        <div class="spacer"></div>
+        <div class="chips" style="margin-bottom:14px">
+          <button class="chip" aria-pressed="true">All</button>
+          <button class="chip">Retried</button>
+          <button class="chip">Dead letter</button>
+          <button class="chip">Orphan events</button>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="row-between" style="margin-bottom:14px">
+            <div>
+              <div class="mono" style="font-size:.8rem;font-weight:500">job_4f9a·c21e</div>
+              <div class="mono" style="font-size:.66rem;color:var(--faint);margin-top:3px">arjun@example.com · campaign_8231</div>
+            </div>
+            <span class="pill on"><span class="dot"></span> Sent · Delivered</span>
+          </div>
+          <div class="tw" style="border:0"><table>
+            <thead><tr><th>#</th><th>Event</th><th>At</th><th>Detail</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">1</td><td>Lease acquired</td><td class="mono" style="font-size:.72rem">14:03:19.402</td><td class="mono" style="font-size:.7rem;color:var(--muted)">worker_a · lease 30s</td></tr>
+              <tr><td class="mono">1</td><td style="color:var(--warn)">Worker died</td><td class="mono" style="font-size:.72rem">14:03:21.118</td><td class="mono" style="font-size:.7rem;color:var(--muted)">lease orphaned, no provider call made</td></tr>
+              <tr><td class="mono">1</td><td>Lease expired</td><td class="mono" style="font-size:.72rem">14:03:49.402</td><td class="mono" style="font-size:.7rem;color:var(--muted)">reaper → status back to pending</td></tr>
+              <tr><td class="mono">2</td><td>Lease acquired</td><td class="mono" style="font-size:.72rem">14:03:50.006</td><td class="mono" style="font-size:.7rem;color:var(--muted)">worker_c</td></tr>
+              <tr><td class="mono">2</td><td>Claim → sending</td><td class="mono" style="font-size:.72rem">14:03:50.011</td><td class="mono" style="font-size:.7rem;color:var(--muted)">no message_id present → safe to send</td></tr>
+              <tr><td class="mono">2</td><td style="color:var(--ok)">Provider accepted</td><td class="mono" style="font-size:.72rem">14:03:50.204</td><td class="mono" style="font-size:.7rem;color:var(--muted)">msg_7c1f… · idem key job_4f9a·c21e</td></tr>
+              <tr><td class="mono">2</td><td>Recorded sent</td><td class="mono" style="font-size:.72rem">14:03:50.209</td><td class="mono" style="font-size:.7rem;color:var(--muted)">adopted 1 orphan event</td></tr>
+              <tr><td class="mono">—</td><td style="color:var(--ok)">Webhook: delivered</td><td class="mono" style="font-size:.72rem">14:03:52.771</td><td class="mono" style="font-size:.7rem;color:var(--muted)">rank 3 &gt; 2 · applied</td></tr>
+              <tr><td class="mono">—</td><td style="color:var(--faint)">Webhook: sent (dup)</td><td class="mono" style="font-size:.72rem">14:03:54.010</td><td class="mono" style="font-size:.7rem;color:var(--muted)">rank 2 ≤ 3 · discarded</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+
+        <div class="card">
+          <div class="sec">Dead letter queue · 1</div>
+          <div class="tw" style="border:0"><table>
+            <thead><tr><th>Job</th><th>Recipient</th><th>Attempts</th><th>Last error</th><th></th></tr></thead>
+            <tbody>
+              <tr><td class="mono" style="font-size:.74rem">job_9d02·8871</td><td class="mono" style="font-size:.74rem">t.banerjee@example.com</td><td class="num">5</td><td style="color:var(--muted);font-size:.78rem">503 Service Unavailable</td><td class="r"><button class="btn sm ghost">Requeue</button></td></tr>
+            </tbody>
+          </table></div>
+          <p class="hint" style="margin-top:10px">Requeue creates a new job with a new idempotency key. The original row is kept for audit.</p>
+        </div>
+      </section>
+
+      <!-- ═══ 10. CHAOS ═══ -->
+      <section class="screen" id="s-chaos">
+        <h1 class="page">Chaos mode</h1>
+        <p class="lede">Development only. Inject failures deliberately and watch the system converge anyway.</p>
+        <div class="spacer"></div>
+
+        <div class="grid2" style="align-items:start;gap:18px">
+          <div class="card">
+            <div class="sec">Failure injection</div>
+            <div class="knob"><label>Transient provider errors<span class="kd">5xx and timeouts → retried with backoff</span></label><output id="o1">5%</output></div>
+            <input type="range" min="0" max="50" value="5" oninput="o1.value=this.value+'%'">
+            <div class="knob"><label>Hard bounces<span class="kd">Permanent — job fails without retry</span></label><output id="o2">3%</output></div>
+            <input type="range" min="0" max="50" value="3" oninput="o2.value=this.value+'%'">
+            <div class="knob"><label>Rate limiting<span class="kd">429 responses from the provider</span></label><output id="o3">2%</output></div>
+            <input type="range" min="0" max="50" value="2" oninput="o3.value=this.value+'%'">
+            <div class="knob"><label>Random worker crashes<span class="kd">Kill a worker mid-send, no cleanup</span></label><output id="o4">0%</output></div>
+            <input type="range" min="0" max="50" value="0" oninput="o4.value=this.value+'%'">
+          </div>
+
+          <div class="card">
+            <div class="sec">Event chaos</div>
+            <div class="knob"><label>Duplicate webhooks<span class="kd">Same event id delivered twice</span></label><output id="o5">10%</output></div>
+            <input type="range" min="0" max="100" value="10" oninput="o5.value=this.value+'%'">
+            <div class="knob"><label>Out-of-order delivery<span class="kd">delivered arrives before sent</span></label><output id="o6">15%</output></div>
+            <input type="range" min="0" max="100" value="15" oninput="o6.value=this.value+'%'">
+            <div class="knob"><label>Webhook before send ack<span class="kd">Forces the orphan-event race on demand</span></label><output id="o7">5%</output></div>
+            <input type="range" min="0" max="100" value="5" oninput="o7.value=this.value+'%'">
+            <div class="knob"><label>Webhook delay<span class="kd">Latency before the event arrives</span></label><output id="o8">2.4s</output></div>
+            <input type="range" min="0" max="100" value="24" oninput="o8.value=(this.value/10).toFixed(1)+'s'">
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="card">
+          <div class="sec">Determinism</div>
+          <div class="row-between">
+            <p style="margin:0;font-size:.82rem;color:var(--muted);line-height:1.55;max-width:66ch">
+              Outcomes are seeded per idempotency key, so the same seed reproduces the same run exactly —
+              same bounces, same crashes, same races. Demos and regression tests are repeatable.
+            </p>
+            <div class="inline"><span class="mono" style="font-size:.72rem;color:var(--muted)">seed</span>
+              <input class="t mono" value="42" style="width:80px;font-size:.78rem;padding:6px 9px"></div>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="inline">
+          <button class="btn" data-go="live">Run seeded campaign →</button>
+          <button class="btn ghost">Reset to defaults</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ── ROUTING ────────────────────────────────────────────────
+  const TITLES = {
+    dash:'Overview', campaigns:'Campaigns', contacts:'Contacts',
+    compose:'New campaign', preflight:'Preflight', approve:'Approve',
+    live:'Live execution', report:'Report', jobs:'Job inspector', chaos:'Chaos mode'
+  };
+  const NAVFOR = { compose:'campaigns', preflight:'campaigns', approve:'campaigns', live:'campaigns', report:'campaigns' };
+
+  function go(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === 's' + '-' + id));
+    document.getElementById('crumb').innerHTML = 'Workspace / <b>' + (TITLES[id] || id) + '</b>';
+    const navTarget = NAVFOR[id] || id;
+    document.querySelectorAll('.navitem').forEach(n =>
+      n.setAttribute('aria-current', String(n.dataset.go === navTarget)));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (id === 'live') startRun();
+  }
+
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-go]');
+    if (t) { go(t.dataset.go); return; }
+    const chip = e.target.closest('.chip');
+    if (chip && chip.parentElement.querySelector('[aria-pressed]')) {
+      const multi = chip.hasAttribute('data-rec');
+      if (!multi) chip.parentElement.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed','false'));
+      chip.setAttribute('aria-pressed', chip.getAttribute('aria-pressed') === 'true' && multi ? 'false' : 'true');
+      recount();
+    }
+  });
+
+  // ── COMPOSE: recipient count + live preview ────────────────
+  const PEOPLE = [
+    { n:'Rahul',  e:'rahul@example.com',  s:'computer vision' },
+    { n:'Ananya', e:'ananya@example.com', s:'reinforcement learning' },
+    { n:'Arjun',  e:'arjun@example.com',  s:null }
+  ];
+
+  function recount() {
+    const el = document.getElementById('rec-count');
+    if (!el) return;
+    let n = 0;
+    document.querySelectorAll('.chip[data-rec][aria-pressed="true"]').forEach(c => n += +c.dataset.rec);
+    el.textContent = n.toLocaleString();
+  }
+
+  function render() {
+    const p = PEOPLE[+document.getElementById('f-who').value];
+    const sub = document.getElementById('f-subject').value;
+    const body = document.getElementById('f-body').value;
+    const fill = s => s
+      .replace(/\{\{first_name\}\}/g, p.n)
+      .replace(/\{\{event_name\}\}/g, 'AI Hackathon 2026')
+      .replace(/\{\{specialization\}\}/g, p.s || '⟨missing⟩');
+    document.getElementById('p-to').textContent = p.e;
+    document.getElementById('p-subj').textContent = fill(sub);
+    const out = document.getElementById('p-body');
+    out.textContent = fill(body);
+    out.innerHTML = out.innerHTML
+      .replace(/⟨missing⟩/g, '<mark style="background:rgba(228,73,31,.2);color:#E4491F;padding:0 3px">⟨missing⟩</mark>')
+      .replace(/(https?:\/\/\S+)/g, '<a href="#">$1</a>');
+  }
+  ['f-subject','f-body','f-who'].forEach(id =>
+    document.getElementById(id).addEventListener('input', render));
+  render(); recount();
+
+  // ── LAUNCH ────────────────────────────────────────────────
+  document.getElementById('launch-btn').addEventListener('click', function () {
+    this.disabled = true; this.textContent = 'Launching…';
+    setTimeout(() => { this.disabled = false; this.textContent = 'Launch 122 jobs'; go('live'); }, 550);
+  });
+
+  // ── LIVE SIMULATION ───────────────────────────────────────
+  const TOTAL = 122;
+  let st, timer, tick0;
+
+  const NAMES = ['rahul','priya','neha','arjun','ananya','vikram','kiran','meera','dev','sana','rohit','asha','nikhil','tara'];
+  const $ = id => document.getElementById(id);
+
+  function reset() {
+    st = { d:0, s:0, r:0, f:0, done:0, calls:0, ids:0, hits:0, orph:0, dupes:0,
+           paused:false, killed:false, over:false,
+           workers:[{id:'worker_a',n:0,up:true},{id:'worker_b',n:0,up:true},{id:'worker_c',n:0,up:true}] };
+    $('feed').innerHTML = '';
+    $('kill-banner').hidden = true;
+    $('toreport').hidden = true;
+    $('live-status').className = 'pill run';
+    $('live-status').innerHTML = '<span class="dot"></span> Running';
+    $('pause-btn').textContent = 'Pause';
+    $('pause-btn').disabled = false;
+    $('kill-btn').disabled = false;
+    tick0 = Date.now();
+  }
+
+  function feed(time, icon, cls, who, what) {
+    const f = $('feed');
+    const row = document.createElement('div');
+    row.className = 'frow';
+    row.innerHTML = `<span>${time}</span><span class="${cls}">${icon}</span><b>${who}</b><span>${what}</span>`;
+    f.prepend(row);
+    while (f.children.length > 60) f.lastChild.remove();
+  }
+
+  function clock() {
+    const s = Math.floor((Date.now() - tick0) / 1000);
+    return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+  }
+
+  function paint() {
+    const pct = v => (v / TOTAL * 100).toFixed(2) + '%';
+    $('b-d').style.width = pct(st.d); $('b-s').style.width = pct(st.s);
+    $('b-r').style.width = pct(st.r); $('b-f').style.width = pct(st.f);
+    $('k-d').textContent = st.d.toLocaleString(); $('k-s').textContent = st.s;
+    $('k-r').textContent = st.r; $('k-f').textContent = st.f;
+    $('live-done').textContent = st.done.toLocaleString();
+    $('i-calls').textContent = st.calls; $('i-ids').textContent = st.ids;
+    $('i-dupes').textContent = st.dupes; $('i-hits').textContent = st.hits;
+    $('i-orph').textContent = st.orph;
+    $('live-elapsed').textContent = clock();
+    $('workers').innerHTML = st.workers.map(w => `
+      <div class="row-between" style="font-family:var(--mono);font-size:.7rem">
+        <span style="color:${w.up ? 'var(--paper)' : 'var(--faint)'}">
+          ${w.up ? '<span style="color:var(--ok)">●</span>' : '<span style="color:var(--crit)">✕</span>'} ${w.id}
+        </span>
+        <span style="color:var(--muted)">${w.up ? w.n + ' jobs' : 'down'}</span>
+      </div>`).join('');
+  }
+
+  function step() {
+    if (st.paused || st.over) return;
+    const t = clock();
+
+    // resolve in-flight sends
+    if (st.s > 0 && Math.random() < .8) {
+      st.s--;
+      const who = NAMES[Math.floor(Math.random()*NAMES.length)] + '@…';
+      const roll = Math.random();
+      if (roll < .04) {                       // hard bounce
+        st.f++; st.done++;
+        feed(t, '✕', 'c', who, 'bounced · 550');
+      } else if (roll < .10) {                // transient -> retry
+        st.r++;
+        feed(t, '↻', 'w', who, 'retry · 503');
+        setTimeout(() => { if (!st.over) { st.r--; st.d++; st.done++; st.calls++; st.ids++; paint();
+          feed(clock(), '✓', 'g', who, 'delivered · attempt 2'); } }, 900 + Math.random()*700);
+      } else {                                 // delivered
+        st.d++; st.done++;
+        feed(t, '✓', 'g', who, 'delivered');
+      }
+    }
+
+    // dispatch new sends
+    const inflight = st.s;
+    const remaining = TOTAL - st.done - st.s - st.r;
+    if (remaining > 0 && inflight < 9) {
+      const up = st.workers.filter(w => w.up);
+      const n = Math.min(remaining, 1 + Math.floor(Math.random()*3), 9 - inflight);
+      for (let i = 0; i < n; i++) {
+        st.s++; st.calls++; st.ids++;
+        if (up.length) up[Math.floor(Math.random()*up.length)].n++;
+        if (Math.random() < .06) { st.orph++; }
+      }
+    }
+
+    paint();
+
+    if (st.done >= TOTAL) {
+      st.over = true;
+      clearInterval(timer);
+      $('live-status').className = 'pill on';
+      $('live-status').innerHTML = '<span class="dot"></span> Completed';
+      $('pause-btn').disabled = true;
+      $('kill-btn').disabled = true;
+      $('toreport').hidden = false;
+      feed(clock(), '■', 'g', 'campaign', 'all sends attempted');
+      setTimeout(() => { if (st.orph > 0) { st.orph = 0; paint();
+        feed(clock(), '✓', 'g', 'sweeper', 'all orphan events resolved'); } }, 1200);
+    }
+  }
+
+  function startRun() {
+    clearInterval(timer);
+    reset(); paint();
+    timer = setInterval(step, 260);
+  }
+
+  $('pause-btn').addEventListener('click', function () {
+    st.paused = !st.paused;
+    this.textContent = st.paused ? 'Resume' : 'Pause';
+    $('live-status').className = st.paused ? 'pill warn' : 'pill run';
+    $('live-status').innerHTML = '<span class="dot"></span> ' + (st.paused ? 'Paused' : 'Running');
+    feed(clock(), st.paused ? '⏸' : '▶', 'w', 'campaign', st.paused ? 'paused by operator' : 'resumed');
+  });
+
+  // The money button: kill a worker and show recovery with no duplicates.
+  $('kill-btn').addEventListener('click', function () {
+    const victim = st.workers.find(w => w.up);
+    if (!victim || st.over) return;
+    victim.up = false;
+
+    const orphaned = Math.min(st.s, 3);
+    st.s -= orphaned;
+    st.calls += orphaned;                    // calls were made, or may have been
+
+    $('kill-detail').textContent = orphaned + ' lease' + (orphaned === 1 ? '' : 's') + ' orphaned.';
+    $('kill-banner').hidden = false;
+    feed(clock(), '✕', 'c', victim.id, 'process killed — leases orphaned');
+    paint();
+
+    setTimeout(() => {
+      if (st.over) return;
+      feed(clock(), '↻', 'w', 'reaper', orphaned + ' expired leases → requeued');
+      paint();
+    }, 900);
+
+    setTimeout(() => {
+      if (st.over) return;
+      // Re-execution hits the idempotency cache: no new message IDs, no duplicates.
+      st.hits += orphaned;
+      st.s += orphaned;
+      feed(clock(), '✓', 'g', 'worker_c', orphaned + ' jobs re-picked · idempotency hit, no resend');
+      paint();
+    }, 1800);
+
+    setTimeout(() => {
+      if (st.over) return;
+      victim.up = true; victim.n = 0;
+      feed(clock(), '●', 'g', victim.id, 'restarted and rejoined');
+      paint();
+    }, 3400);
+
+    this.disabled = true;
+  });
+})();
+</script>

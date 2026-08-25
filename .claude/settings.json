@@ -1,0 +1,42 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/block_push.py\" 2>/dev/null || python3 \"/home/mystic1/Projects/Sendrun/.claude/hooks/block_push.py\""
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(wc:*)",
+      "Bash(find:*)",
+      "Bash(rg:*)",
+      "Bash(sed:*)",
+      "Bash(uv run:*)",
+      "Bash(uv pip:*)",
+      "Bash(uv venv:*)",
+      "Bash(npm run:*)",
+      "Bash(npm --prefix:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pytest:*)"
+    ],
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git remote add:*)"
+    ]
+  }
+}

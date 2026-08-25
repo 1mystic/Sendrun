@@ -1,0 +1,495 @@
+/* ═══════════════════════════════════════════════════════════════
+   AUTH — split-screen shell + form primitives not shared with the
+   app shell. Ported from design/prototypes/auth.html.
+   Brand tokens (ink/paper/accent/etc.) come from app/globals.css.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Form sits on the RIGHT, brand panel on the left.
+   Done with grid column order rather than reordering the DOM, so the form
+   still comes first in source order for keyboard and screen-reader users. */
+.a-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.a-formpane {
+  grid-column: 2;
+  grid-row: 1;
+}
+.a-brandpane {
+  grid-column: 1;
+  grid-row: 1;
+}
+@media (max-width: 900px) {
+  .a-shell {
+    grid-template-columns: 1fr;
+    min-height: 100dvh; /* dvh, so mobile browser chrome does not clip the form */
+  }
+  .a-formpane {
+    grid-column: 1;
+    align-items: flex-start;
+    padding: clamp(20px, 6vw, 40px) clamp(18px, 5vw, 36px) 48px;
+  }
+  .a-brandpane {
+    display: none;
+  }
+}
+
+.a-formpane {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(24px, 5vw, 72px);
+  min-width: 0;
+}
+
+/* Single branding: the brand pane owns the logo on desktop, so the form's own
+   lockup is suppressed there. Below 900px the brand pane is hidden, so the
+   form's lockup takes over and the page is never unbranded. */
+@media (min-width: 901px) {
+  .a-formwrap .a-brand-lockup {
+    display: none;
+  }
+}
+/* Grows with the viewport instead of stranding a 440px column on a wide
+   display, but stops well short of a line length that hurts readability.
+   Mirrors .a-brandpane > div so the two panes align across the gutter. */
+.a-formwrap {
+  width: 100%;
+  max-width: clamp(360px, 34vw, 560px);
+  margin-right: auto;
+  margin-left: clamp(8px, 2vw, 40px);
+}
+@media (max-width: 900px) {
+  .a-formwrap {
+    margin-left: 0;
+    max-width: 480px;
+  }
+}
+
+.a-brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-size: 1.05rem;
+  margin-bottom: clamp(28px, 5vh, 52px);
+}
+.a-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex: none;
+  position: relative;
+}
+.a-mark::after {
+  content: "";
+  position: absolute;
+  left: 5.5px;
+  top: 5.5px;
+  width: 11px;
+  height: 11px;
+  border-left: 2px solid var(--color-accent-ink);
+  border-bottom: 2px solid var(--color-accent-ink);
+}
+
+.a-formwrap h1 {
+  font-size: clamp(1.4rem, 2.6vw, 1.85rem);
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+.a-formwrap p.lede {
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 0.87rem;
+  margin: 0 0 28px;
+  max-width: 46ch;
+}
+
+.a-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.a-field-row .field-label {
+  margin-bottom: 0;
+}
+
+.a-checkline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.a-checkline input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.a-linktext {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.a-linktext a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.a-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.a-divider::before,
+.a-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.a-btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.a-btn-google svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.a-footline {
+  margin-top: 26px;
+  font-size: 0.83rem;
+  color: var(--muted);
+  text-align: center;
+}
+.a-footline a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 500;
+}
+
+.a-backlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 22px;
+  text-decoration: none;
+}
+.a-backlink:hover {
+  color: var(--color-paper);
+}
+
+/* strength meter */
+.a-strength {
+  margin: -8px 0 16px;
+}
+.a-strength .a-bar {
+  height: 4px;
+  margin-bottom: 6px;
+}
+.a-strength .a-lbl {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.a-strength .a-lbl b {
+  font-weight: 600;
+}
+
+.a-bar {
+  height: 7px;
+  border-radius: 0;
+  overflow: hidden;
+  background: var(--line);
+  display: flex;
+}
+.a-bar i {
+  display: block;
+  height: 100%;
+  transition: width 0.5s var(--ease-brand);
+}
+
+/* match validation */
+.a-matchmsg {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  margin-top: 6px;
+  display: none;
+  align-items: center;
+  gap: 6px;
+}
+.a-matchmsg.show {
+  display: flex;
+}
+.a-matchmsg.err {
+  color: var(--color-crit);
+}
+.a-matchmsg.ok {
+  color: var(--color-ok);
+}
+
+/* 2FA boxes */
+.a-otp-row {
+  display: flex;
+  gap: clamp(5px, 2vw, 10px); /* six boxes must fit a 320px screen */
+  margin-bottom: 22px;
+}
+.a-otp-row input {
+  width: 100%;
+  aspect-ratio: 1;
+  text-align: center;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-brand);
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 600;
+  transition: border-color 0.18s;
+}
+.a-otp-row input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+/* resend */
+.a-resend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+.a-resend-row button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: not-allowed;
+}
+.a-resend-row button.ready {
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
+/* slug preview */
+.a-slug-preview {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--muted);
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: var(--color-ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-brand);
+}
+.a-slug-preview b {
+  color: var(--color-paper);
+  font-weight: 600;
+}
+
+/* invite rows */
+.a-invite-row {
+  display: grid;
+  grid-template-columns: 1fr 140px auto;
+  gap: 10px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+.a-invite-row .field-label {
+  margin-bottom: 0;
+}
+.a-invite-row .rm {
+  background: none;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-brand);
+  color: var(--faint);
+  width: 38px;
+  height: 38px;
+  margin-top: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.18s, color 0.18s;
+}
+.a-invite-row .rm:hover {
+  color: var(--color-crit);
+  border-color: rgba(228, 73, 31, 0.45);
+}
+@media (max-width: 520px) {
+  .a-invite-row {
+    grid-template-columns: 1fr;
+  }
+  .a-invite-row .rm {
+    margin-top: 0;
+    width: 100%;
+    height: 34px;
+  }
+}
+
+/* ── BRAND PANE ────────────────────────────────────────────────── */
+/* Both panes centre their content on the same vertical axis and use the same
+   block padding, so the brand lockup and the form heading sit on one line
+   rather than drifting apart at different viewport heights. */
+.a-brandpane {
+  background: var(--color-ink-2);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(24px, 5vw, 72px);
+  position: relative;
+  overflow: hidden;
+}
+.a-brandpane > div {
+  width: 100%;
+  max-width: clamp(360px, 34vw, 560px);
+  margin-left: auto; /* pull toward the shared centre gutter */
+  margin-right: clamp(8px, 2vw, 40px);
+}
+.a-brandpane::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 42px 42px;
+  opacity: 0.35;
+  mask-image: radial-gradient(circle at 30% 30%, black, transparent 70%);
+}
+.a-brandpane > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Entrance: the form rises first, the brand pane follows a beat later.
+   Stagger gives the eye an order to read in rather than everything
+   arriving at once. */
+@keyframes a-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.a-formwrap {
+  animation: a-rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.a-brandpane > * {
+  animation: a-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .a-formwrap,
+  .a-brandpane > * {
+    animation: none;
+  }
+}
+
+.a-thesis {
+  font-size: clamp(1.5rem, 3.1vw, 3.1rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  max-width: 16ch;
+  margin: clamp(18px, 2vw, 30px) 0 clamp(28px, 3vw, 48px);
+  text-wrap: balance;
+}
+.a-thesis .accent {
+  color: var(--color-accent);
+}
+
+.a-mockcard {
+  max-width: clamp(340px, 30vw, 520px);
+}
+.a-mockcard .row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.a-proof-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  padding: 14px 0 0;
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.a-proof-row b {
+  color: var(--color-ok);
+  font-weight: 600;
+}
+
+.a-mini-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 18px;
+}
+.a-mini-stat {
+  border-left: 2px solid var(--line-2);
+  padding-left: 10px;
+}
+.a-mini-stat.g {
+  border-left-color: var(--color-ok);
+}
+.a-mini-stat u {
+  display: block;
+  text-decoration: none;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.a-mini-stat span {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+}

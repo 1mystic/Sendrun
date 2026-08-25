@@ -1,0 +1,878 @@
+<title>Sendrun Auth</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   SENDRUN — brand system (verbatim from sendrun-prototype.html)
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --ink:        #14110F;
+  --ink-2:      #1C1815;
+  --ink-3:      #241F1B;
+  --paper:      #F5F1E8;
+  --accent:     #E4491F;
+  --accent-ink: #F5F1E8;
+  --accent-dim: rgba(228,73,31,.13);
+
+  --muted:  rgba(245,241,232,.48);
+  --faint:  rgba(245,241,232,.30);
+  --line:   rgba(245,241,232,.11);
+  --line-2: rgba(245,241,232,.18);
+
+  /* semantic — separate from accent */
+  --ok:   #7FB069;
+  --warn: #D9A441;
+  --crit: #E4491F;
+
+  --display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+  --r: 3px;
+  --ease: cubic-bezier(.16,1,.3,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--display);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button { font-family: inherit; cursor: pointer; }
+a { color: var(--accent); }
+
+/* ── PRIMITIVES (verbatim) ────────────────────────────────────── */
+.btn {
+  font-family: var(--mono); font-size: .7rem; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase;
+  padding: 10px 18px; border-radius: var(--r);
+  background: var(--accent); color: var(--accent-ink);
+  border: 1px solid var(--accent);
+  transition: filter .2s, transform .2s var(--ease);
+}
+.btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+.btn:disabled { opacity: .34; cursor: not-allowed; }
+.btn.ghost { background: transparent; color: var(--paper); border-color: var(--line-2); }
+.btn.ghost:hover:not(:disabled) { border-color: var(--paper); }
+.btn.sm { padding: 6px 12px; font-size: .63rem; }
+.btn.block { width: 100%; text-align: center; display: block; }
+
+.card {
+  background: var(--ink-2); border: 1px solid var(--line);
+  border-radius: var(--r); padding: clamp(18px, 1.6vw, 26px);
+}
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: .62rem; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 999px;
+  border: 1px solid var(--line-2); color: var(--muted);
+}
+.pill.on   { color: var(--ok);   border-color: rgba(127,176,105,.4);  background: rgba(127,176,105,.1); }
+.pill.run  { color: var(--accent); border-color: rgba(228,73,31,.45); background: var(--accent-dim); }
+.pill.warn { color: var(--warn); border-color: rgba(217,164,65,.4);  background: rgba(217,164,65,.1); }
+.pill.crit { color: var(--crit); border-color: rgba(228,73,31,.45); background: var(--accent-dim); }
+.pill .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.pill.run .dot { animation: blink 1.6s var(--ease) infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+.mono { font-family: var(--mono); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ── FORM (verbatim) ──────────────────────────────────────────── */
+label.f { display: block; margin-bottom: 16px; }
+label.f > span {
+  display: block; font-family: var(--mono); font-size: .61rem;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 6px;
+}
+input.t, textarea.t, select.t {
+  width: 100%; background: var(--ink); color: var(--paper);
+  border: 1px solid var(--line-2); border-radius: var(--r);
+  padding: 10px 12px; font-family: var(--display); font-size: .86rem;
+  transition: border-color .18s;
+}
+textarea.t { font-family: var(--mono); font-size: .78rem; line-height: 1.7; resize: vertical; }
+input.t:focus, textarea.t:focus, select.t:focus { border-color: var(--accent); outline: none; }
+.hint { font-family: var(--mono); font-size: .62rem; color: var(--faint); margin-top: 5px; }
+
+.bar { height: 7px; border-radius: 0; overflow: hidden; background: var(--line); display: flex; }
+.bar i { display: block; height: 100%; transition: width .5s var(--ease); }
+.bar i.d { background: var(--ok); }
+.bar i.s { background: var(--accent); }
+.bar i.r { background: var(--warn); }
+.bar i.f { background: rgba(228,73,31,.42); }
+
+.mark {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent); flex: none; position: relative;
+}
+.mark::after {
+  content:''; position: absolute; left: 5.5px; top: 5.5px;
+  width: 11px; height: 11px;
+  border-left: 2px solid var(--accent-ink);
+  border-bottom: 2px solid var(--accent-ink);
+}
+.sec {
+  font-family: var(--mono); font-size: .62rem;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--faint); display: flex; align-items: center; gap: 12px;
+  margin: 0 0 14px;
+}
+.sec::after { content:''; flex:1; height:1px; background: var(--line); }
+
+/* ═══════════════════════════════════════════════════════════════
+   AUTH-SPECIFIC LAYOUT
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Form sits on the RIGHT, brand panel on the left.
+   Done with grid column order rather than reordering the DOM, so the form
+   still comes first in source order for keyboard and screen-reader users. */
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.formpane  { grid-column: 2; grid-row: 1; }
+.brandpane { grid-column: 1; grid-row: 1; }
+@media (max-width: 900px) {
+  .auth-shell { grid-template-columns: 1fr; }
+  .formpane { grid-column: 1; }
+  .brandpane { display: none; }
+}
+
+.formpane {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(28px, 5vw, 64px);
+  min-width: 0;
+}
+.formwrap { width: 100%; max-width: 440px; }
+
+.brand-lockup {
+  display: flex; align-items: center; gap: 9px;
+  font-weight: 700; letter-spacing: -.02em; font-size: 1.05rem;
+  margin-bottom: clamp(28px, 5vh, 52px);
+}
+
+.formwrap h1 {
+  font-size: clamp(1.4rem, 2.6vw, 1.85rem);
+  letter-spacing: -.03em; line-height: 1.08;
+  margin: 0 0 8px; font-weight: 700;
+}
+.formwrap p.lede {
+  color: var(--muted); line-height: 1.6; font-size: .87rem;
+  margin: 0 0 28px; max-width: 46ch;
+}
+
+.field-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.field-row label.f { margin-bottom: 0; }
+
+.checkline {
+  display: flex; align-items: center; gap: 8px;
+  font-size: .82rem; color: var(--muted);
+  cursor: pointer; user-select: none;
+}
+.checkline input[type="checkbox"] {
+  width: 16px; height: 16px; margin: 0; flex: none;
+  accent-color: var(--accent); cursor: pointer;
+}
+
+.linktext { font-size: .8rem; color: var(--muted); }
+.linktext a { text-decoration: underline; text-underline-offset: 3px; }
+
+.divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 22px 0; color: var(--faint);
+  font-family: var(--mono); font-size: .6rem;
+  letter-spacing: .12em; text-transform: uppercase;
+}
+.divider::before, .divider::after { content:''; flex:1; height:1px; background: var(--line); }
+
+.btn.google {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.btn.google svg { width: 16px; height: 16px; flex: none; }
+
+.footline {
+  margin-top: 26px; font-size: .83rem; color: var(--muted);
+  text-align: center;
+}
+.footline a { text-decoration: underline; text-underline-offset: 3px; font-weight: 500; }
+
+.backlink {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: .68rem; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 22px; text-decoration: none;
+}
+.backlink:hover { color: var(--paper); }
+
+/* strength meter */
+.strength { margin: -8px 0 16px; }
+.strength .bar { height: 4px; margin-bottom: 6px; }
+.strength .lbl { font-family: var(--mono); font-size: .6rem; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.strength .lbl b { font-weight: 600; }
+
+/* match validation */
+.matchmsg { font-family: var(--mono); font-size: .68rem; margin-top: 6px; display: none; align-items: center; gap: 6px; }
+.matchmsg.show { display: flex; }
+.matchmsg.err { color: var(--crit); }
+.matchmsg.ok { color: var(--ok); }
+
+/* 2FA boxes */
+.otp-row { display: flex; gap: 10px; margin-bottom: 22px; }
+.otp-row input {
+  width: 100%; aspect-ratio: 1; text-align: center;
+  background: var(--ink); color: var(--paper);
+  border: 1px solid var(--line-2); border-radius: var(--r);
+  font-family: var(--mono); font-size: 1.3rem; font-weight: 600;
+  transition: border-color .18s;
+}
+.otp-row input:focus { border-color: var(--accent); outline: none; }
+
+/* resend */
+.resend-row { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: .74rem; color: var(--muted); }
+.resend-row button {
+  background: none; border: 0; padding: 0; color: var(--faint);
+  font-family: var(--mono); font-size: .74rem; text-decoration: underline;
+  text-underline-offset: 3px; cursor: not-allowed;
+}
+.resend-row button.ready { color: var(--accent); cursor: pointer; }
+
+/* slug preview */
+.slug-preview {
+  font-family: var(--mono); font-size: .74rem; color: var(--muted);
+  margin-top: 6px; padding: 8px 10px; background: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--r);
+}
+.slug-preview b { color: var(--paper); font-weight: 600; }
+
+/* invite rows */
+.invite-row { display: grid; grid-template-columns: 1fr 140px auto; gap: 10px; align-items: start; margin-bottom: 12px; }
+.invite-row label.f { margin-bottom: 0; }
+.invite-row .rm {
+  background: none; border: 1px solid var(--line-2); border-radius: var(--r);
+  color: var(--faint); width: 38px; height: 38px; margin-top: 21px;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color .18s, color .18s;
+}
+.invite-row .rm:hover { color: var(--crit); border-color: rgba(228,73,31,.45); }
+@media (max-width: 520px) {
+  .invite-row { grid-template-columns: 1fr; }
+  .invite-row .rm { margin-top: 0; width: 100%; height: 34px; }
+}
+
+/* ── BRAND PANE ────────────────────────────────────────────────── */
+.brandpane {
+  background: var(--ink-2);
+  border-left: 1px solid var(--line);
+  display: flex; flex-direction: column; justify-content: center;
+  padding: clamp(40px, 6vw, 80px);
+  position: relative; overflow: hidden;
+}
+.brandpane::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 42px 42px;
+  opacity: .35;
+  mask-image: radial-gradient(circle at 30% 30%, black, transparent 70%);
+}
+.brandpane > * { position: relative; z-index: 1; }
+
+.thesis {
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-weight: 700; letter-spacing: -.03em; line-height: 1.18;
+  max-width: 18ch; margin: 22px 0 36px;
+}
+.thesis .accent { color: var(--accent); }
+
+.mockcard { max-width: 380px; }
+.mockcard .row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+
+.proof-row {
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--mono); font-size: .72rem; color: var(--muted);
+  padding: 14px 0 0; margin-top: 14px; border-top: 1px solid var(--line);
+}
+.proof-row b { color: var(--ok); font-weight: 600; }
+
+.mini-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
+.mini-stat { border-left: 2px solid var(--line-2); padding-left: 10px; }
+.mini-stat.g { border-left-color: var(--ok); }
+.mini-stat u { display: block; text-decoration: none; font-size: 1.3rem; font-weight: 700; letter-spacing: -.02em; }
+.mini-stat span { font-family: var(--mono); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+
+/* ── SCREEN SWITCH ─────────────────────────────────────────────── */
+.screen { display: none; animation: fade .35s var(--ease); }
+.screen.active { display: block; }
+@keyframes fade { from { opacity:0; transform: translateY(6px);} to { opacity:1; transform:none; } }
+
+.switcher {
+  position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+  z-index: 100; display: flex; flex-wrap: wrap; gap: 4px;
+  max-width: calc(100vw - 24px);
+  background: rgba(28,24,21,.92); backdrop-filter: blur(8px);
+  border: 1px solid var(--line-2); border-radius: var(--r);
+  padding: 6px; box-shadow: 0 8px 28px rgba(0,0,0,.4);
+}
+.switcher button {
+  font-family: var(--mono); font-size: .6rem; font-weight: 600;
+  letter-spacing: .05em; text-transform: uppercase;
+  background: none; border: 1px solid transparent; border-radius: 2px;
+  color: var(--faint); padding: 5px 8px; white-space: nowrap;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.switcher button:hover { color: var(--paper); }
+.switcher button.on { color: var(--accent); border-color: rgba(228,73,31,.4); background: var(--accent-dim); }
+
+/* keep content clear of the fixed switcher bar on short viewports */
+.formpane { padding-bottom: clamp(72px, 12vh, 100px); }
+</style>
+
+<div class="auth-shell">
+  <div class="formpane">
+    <div class="formwrap">
+
+      <!-- ═══ 1. SIGN IN ═══ -->
+      <section class="screen active" id="s-signin">
+        <div class="brand-lockup"><span class="mark"></span> Sendrun</div>
+        <h1>Sign in</h1>
+        <p class="lede">Welcome back. Enter your credentials to access your workspace.</p>
+
+        <form onsubmit="return false;">
+          <label class="f" for="si-email"><span>Email</span>
+            <input class="t" type="email" id="si-email" name="email" placeholder="you@company.com" autocomplete="email" required="">
+          </label>
+          <label class="f" for="si-pass"><span>Password</span>
+            <input class="t" type="password" id="si-pass" name="password" placeholder="••••••••" autocomplete="current-password" required="">
+          </label>
+
+          <div class="field-row">
+            <label class="checkline" for="si-remember">
+              <input type="checkbox" id="si-remember" name="remember">
+              Remember me
+            </label>
+            <a class="linktext" href="#" data-go="forgot">Forgot password?</a>
+          </div>
+
+          <button class="btn block" type="submit">Sign in</button>
+
+          <div class="divider">Or</div>
+
+          <button class="btn ghost google block" type="button">
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.4 0 6.4 1.2 8.8 3.5l6.6-6.6C35.3 2.5 30.1 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.7 6C12.1 13.1 17.5 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.6c-.5 3-2.2 5.5-4.7 7.2l7.3 5.7c4.3-4 6.8-9.8 6.8-17.4z"></path><path fill="#FBBC05" d="M10.3 19.2a14.6 14.6 0 0 0 0 9.6l-7.7 6a24 24 0 0 1 0-21.6z"></path><path fill="#34A853" d="M24 48c6.1 0 11.3-2 15-5.5l-7.3-5.7c-2 1.4-4.7 2.2-7.7 2.2-6.5 0-12-4.4-13.9-10.3l-7.7 6C6.5 42.6 14.6 48 24 48z"></path></svg>
+            Continue with Google
+          </button>
+        </form>
+
+        <p class="footline">New to Sendrun? <a href="#" data-go="signup">Create an account</a></p>
+      </section>
+
+      <!-- ═══ 2. SIGN UP ═══ -->
+      <section class="screen" id="s-signup">
+        <div class="brand-lockup"><span class="mark"></span> Sendrun</div>
+        <h1>Create your account</h1>
+        <p class="lede">Set up in under a minute. No credit card required to start.</p>
+
+        <form onsubmit="return false;">
+          <label class="f" for="su-name"><span>Full name</span>
+            <input class="t" type="text" id="su-name" name="name" placeholder="Ada Lovelace" autocomplete="name" required="">
+          </label>
+          <label class="f" for="su-email"><span>Work email</span>
+            <input class="t" type="email" id="su-email" name="email" placeholder="you@company.com" autocomplete="email" required="">
+          </label>
+          <label class="f" for="su-pass"><span>Password</span>
+            <input class="t" type="password" id="su-pass" name="password" placeholder="At least 8 characters" autocomplete="new-password" required="" oninput="updateStrength(this.value)">
+          </label>
+
+          <div class="strength" aria-live="polite">
+            <div class="bar"><i id="su-strength-bar" style="width:0%;background:var(--crit)"></i></div>
+            <span class="lbl">Strength: <b id="su-strength-lbl" style="color:var(--faint)">enter a password</b></span>
+          </div>
+
+          <label class="checkline" for="su-terms" style="margin-bottom:20px">
+            <input type="checkbox" id="su-terms" name="terms" required="">
+            I agree to the <a href="#" onclick="event.stopPropagation()">Terms of Service</a> and <a href="#" onclick="event.stopPropagation()">Privacy Policy</a>
+          </label>
+
+          <button class="btn block" type="submit" data-go="createorg">Create account</button>
+
+          <div class="divider">Or</div>
+
+          <button class="btn ghost google block" type="button">
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.4 0 6.4 1.2 8.8 3.5l6.6-6.6C35.3 2.5 30.1 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.7 6C12.1 13.1 17.5 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.6c-.5 3-2.2 5.5-4.7 7.2l7.3 5.7c4.3-4 6.8-9.8 6.8-17.4z"></path><path fill="#FBBC05" d="M10.3 19.2a14.6 14.6 0 0 0 0 9.6l-7.7 6a24 24 0 0 1 0-21.6z"></path><path fill="#34A853" d="M24 48c6.1 0 11.3-2 15-5.5l-7.3-5.7c-2 1.4-4.7 2.2-7.7 2.2-6.5 0-12-4.4-13.9-10.3l-7.7 6C6.5 42.6 14.6 48 24 48z"></path></svg>
+            Continue with Google
+          </button>
+        </form>
+
+        <p class="footline">Already have an account? <a href="#" data-go="signin">Sign in</a></p>
+      </section>
+
+      <!-- ═══ 3. FORGOT PASSWORD ═══ -->
+      <section class="screen" id="s-forgot">
+        <a class="backlink" href="#" data-go="signin">&larr; Back to sign in</a>
+        <div class="brand-lockup"><span class="mark"></span> Sendrun</div>
+        <h1>Reset your password</h1>
+        <p class="lede">Enter the email address on your account and we'll send you a link to reset your password. The link expires in 30 minutes.</p>
+
+        <form onsubmit="return false;">
+          <label class="f" for="fp-email"><span>Email</span>
+            <input class="t" type="email" id="fp-email" name="email" placeholder="you@company.com" autocomplete="email" required="">
+          </label>
+          <button class="btn block" type="submit" data-go="checkemail" onclick="prepCheckEmail()">Send reset link</button>
+        </form>
+
+        <p class="footline"><a href="#" data-go="signin">Remembered your password? Sign in</a></p>
+      </section>
+
+      <!-- ═══ 4. CHECK YOUR EMAIL ═══ -->
+      <section class="screen" id="s-checkemail">
+        <a class="backlink" href="#" data-go="forgot">&larr; Use a different email</a>
+        <div class="brand-lockup"><span class="mark"></span> Sendrun</div>
+        <h1>Check your email</h1>
+        <p class="lede">We sent a password reset link to <b id="ce-email" style="color:var(--paper)">you@company.com</b>. Click the link in that email to choose a new password.</p>
+
+        <div class="card" style="margin-bottom:20px">
+          <div class="resend-row">
+            <span>Didn't get it?</span>
+            <button type="button" id="resend-btn" disabled="">Resend in <span id="resend-timer" class="num">0:45</span></button>
+          </div>
+        </div>
+
+        <p class="hint" style="font-size:.72rem;line-height:1.6">Also check your spam or promotions folder — the message is sent from notify@sendrun.app and can occasionally be filtered there.</p>
+
+        <p class="footline"><a href="#" data-go="signin">Back to sign in</a></p>
+      </section>
+
+      <!-- ═══ 5. RESET PASSWORD ═══ -->
+      <section class="screen" id="s-reset">
+        <div class="brand-lockup"><span class="mark"></span> Sendrun</div>
+        <h1>Choose a new password</h1>
+        <p class="lede">Your new password must be different from your previous password.</p>
+
+        <form onsubmit="return false;">
+          <label class="f" for="rp-pass"><span>New password</span>
+            <input class="t" type="password" id="rp-pass" name="password" placeholder="At least 8 characters" autocomplete="new-password" required="" oninput="updateResetStrength(this.value); checkMatch();">
+          </label>
+
+          <div class="strength" aria-live="polite">
+            <div class="bar"><i id="rp-strength-bar" style="width:0%;background:var(--crit)"></i></div>
+            <span class="lbl">Strength: <b id="rp-strength-lbl" style="color:var(--faint)">enter a password</b></span>
+          </div>
+
+          <label class="f" for="rp-confirm"><span>Confirm new password</span>
+            <input class="t" type="password" id="rp-confirm" name="confirm" placeholder="Re-enter your password" autocomplete="new-password" required="" oninput="checkMatch()">
+          </label>
+          <div class="matchmsg" id="rp-match" style="margin-top:-10px">
+            <span id="rp-match-icon"></span><span id="rp-match-text"></span>
+          </div>
+
+          <div style="height:6px"></div>
+          <button class="btn block" type="submit" id="rp-submit" data-go="signin">Reset password</button>
+        </form>
+      </section>
+
+      <!-- ═══ 6. TWO-FACTOR ═══ -->
+      <section class="screen" id="s-2fa">
+        <a class="backlink" href="#" data-go="signin">&larr; Back to sign in</a>
+        <div class="brand-lockup"><span class="mark"></span> Sendrun</div>
+        <h1>Enter verification code</h1>
+        <p class="lede">We sent a 6-digit code to your authenticator app. Enter it below to finish signing in.</p>
+
+        <form onsubmit="return false;">
+          <fieldset style="border:0; padding:0; margin:0 0 6px" id="otp-fieldset">
+            <legend class="mono" style="font-size:.61rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;padding:0">6-digit code</legend>
+            <div class="otp-row" id="otp-row">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 1 of 6" data-i="0">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 2 of 6" data-i="1">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 3 of 6" data-i="2">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 4 of 6" data-i="3">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 5 of 6" data-i="4">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 6 of 6" data-i="5">
+            </div>
+          </fieldset>
+
+          <button class="btn block" type="submit" style="margin-top:6px">Verify and continue</button>
+        </form>
+
+        <p class="footline"><a href="#">Use a recovery code instead</a></p>
+      </section>
+
+      <!-- ═══ 7. CREATE ORGANIZATION ═══ -->
+      <section class="screen" id="s-createorg">
+        <div class="brand-lockup"><span class="mark"></span> Sendrun</div>
+        <h1>Create your organization</h1>
+        <p class="lede">This is the workspace your team will send from. You can invite people and change these details later.</p>
+
+        <form onsubmit="return false;">
+          <label class="f" for="co-name"><span>Organization name</span>
+            <input class="t" type="text" id="co-name" name="orgname" placeholder="AI Research Club" required="" oninput="updateSlug(this.value)">
+          </label>
+
+          <label class="f" for="co-slug"><span>Workspace URL</span>
+            <input class="t" type="text" id="co-slug" name="slug" placeholder="ai-research-club" required="">
+            <div class="slug-preview">sendrun.app/<b id="slug-preview-text">your-org</b></div>
+          </label>
+
+          <label class="f" for="co-size"><span>Team size</span>
+            <select class="t" id="co-size" name="size" required="">
+              <option value="">Select team size</option>
+              <option value="1">Just me</option>
+              <option value="2-10">2–10 people</option>
+              <option value="11-50">11–50 people</option>
+              <option value="51-200">51–200 people</option>
+              <option value="200+">200+ people</option>
+            </select>
+          </label>
+
+          <label class="f" for="co-use"><span>What will you use Sendrun for?</span>
+            <select class="t" id="co-use" name="use" required="">
+              <option value="">Select a use case</option>
+              <option value="outreach">Event and speaker outreach</option>
+              <option value="fundraising">Fundraising and donor communication</option>
+              <option value="product">Product and customer updates</option>
+              <option value="internal">Internal team announcements</option>
+              <option value="other">Something else</option>
+            </select>
+          </label>
+
+          <button class="btn block" type="submit" data-go="invite">Create organization</button>
+        </form>
+      </section>
+
+      <!-- ═══ 8. INVITE YOUR TEAM ═══ -->
+      <section class="screen" id="s-invite">
+        <div class="brand-lockup"><span class="mark"></span> Sendrun</div>
+        <h1>Invite your team</h1>
+        <p class="lede">Sendrun works best with your whole team in one workspace. You can always invite more people later.</p>
+
+        <form onsubmit="return false;">
+          <div id="invite-rows">
+            <div class="invite-row">
+              <label class="f" for="inv-email-0"><span>Email</span>
+                <input class="t" type="email" id="inv-email-0" name="inv-email-0" placeholder="teammate@company.com">
+              </label>
+              <label class="f" for="inv-role-0"><span>Role</span>
+                <select class="t" id="inv-role-0" name="inv-role-0">
+                  <option value="owner">Owner</option>
+                  <option value="admin" selected="">Admin</option>
+                  <option value="editor">Editor</option>
+                  <option value="viewer">Viewer</option>
+                </select>
+              </label>
+              <button type="button" class="rm" aria-label="Remove this row" onclick="removeInviteRow(this)">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            <div class="invite-row">
+              <label class="f" for="inv-email-1"><span>Email</span>
+                <input class="t" type="email" id="inv-email-1" name="inv-email-1" placeholder="teammate@company.com">
+              </label>
+              <label class="f" for="inv-role-1"><span>Role</span>
+                <select class="t" id="inv-role-1" name="inv-role-1">
+                  <option value="owner">Owner</option>
+                  <option value="admin">Admin</option>
+                  <option value="editor" selected="">Editor</option>
+                  <option value="viewer">Viewer</option>
+                </select>
+              </label>
+              <button type="button" class="rm" aria-label="Remove this row" onclick="removeInviteRow(this)">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            <div class="invite-row">
+              <label class="f" for="inv-email-2"><span>Email</span>
+                <input class="t" type="email" id="inv-email-2" name="inv-email-2" placeholder="teammate@company.com">
+              </label>
+              <label class="f" for="inv-role-2"><span>Role</span>
+                <select class="t" id="inv-role-2" name="inv-role-2">
+                  <option value="owner">Owner</option>
+                  <option value="admin">Admin</option>
+                  <option value="editor">Editor</option>
+                  <option value="viewer" selected="">Viewer</option>
+                </select>
+              </label>
+              <button type="button" class="rm" aria-label="Remove this row" onclick="removeInviteRow(this)">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+              </button>
+            </div>
+          </div>
+
+          <button type="button" class="btn ghost sm" id="add-row-btn" onclick="addInviteRow()">+ Add another</button>
+
+          <div style="height:22px"></div>
+          <div class="inline" style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn" type="submit" data-go="signin">Send invites</button>
+            <button class="btn ghost" type="button" data-go="signin">Skip for now</button>
+          </div>
+        </form>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- ══════ BRAND PANE ══════ -->
+  <aside class="brandpane">
+    <div>
+      <div class="brand-lockup" style="margin-bottom:0"><span class="mark"></span> Sendrun</div>
+      <p class="thesis">Every recipient is an independent, <span class="accent">idempotent</span> job.</p>
+
+      <div class="card mockcard">
+        <div class="row-between">
+          <div>
+            <div style="font-weight:600;font-size:.9rem;letter-spacing:-.01em">Hackathon Speaker Outreach</div>
+            <div class="mono" style="font-size:.62rem;color:var(--faint);margin-top:3px">campaign_8231 · running</div>
+          </div>
+          <span class="pill run"><span class="dot"></span> Live</span>
+        </div>
+        <div class="bar">
+          <i class="d" style="width:59%"></i><i class="s" style="width:8%"></i><i class="r" style="width:3%"></i><i class="f" style="width:2%"></i>
+        </div>
+        <div class="mini-stats">
+          <div class="mini-stat g"><u>97.4%</u><span>Delivered</span></div>
+          <div class="mini-stat"><u>8/sec</u><span>Send rate</span></div>
+        </div>
+        <div class="proof-row">
+          <span>Duplicate sends</span>
+          <b class="num">0</b>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- ══════ SCREEN SWITCHER ══════ -->
+<nav class="switcher" aria-label="Preview screens">
+  <button data-go="signin" class="on">Sign in</button>
+  <button data-go="signup">Sign up</button>
+  <button data-go="forgot">Forgot pw</button>
+  <button data-go="checkemail">Check email</button>
+  <button data-go="reset">Reset pw</button>
+  <button data-go="2fa">2FA</button>
+  <button data-go="createorg">Create org</button>
+  <button data-go="invite">Invite team</button>
+</nav>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ── SCREEN SWITCHER ────────────────────────────────────────── */
+  function go(id) {
+    document.querySelectorAll(".screen").forEach(function (s) { s.classList.remove("active"); });
+    var target = document.getElementById("s-" + id);
+    if (target) { target.classList.add("active"); }
+    document.querySelectorAll(".switcher button").forEach(function (b) {
+      b.classList.toggle("on", b.getAttribute("data-go") === id);
+    });
+    if (id === "checkemail") { prepCheckEmail(); }
+    if (id === "2fa") { focusFirstOtp(); }
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+  window.go = go;
+
+  document.addEventListener("click", function (e) {
+    var el = e.target.closest("[data-go]");
+    if (!el) { return; }
+    e.preventDefault();
+    go(el.getAttribute("data-go"));
+  });
+
+  /* ── PASSWORD STRENGTH ─────────────────────────────────────── */
+  function scorePassword(pw) {
+    if (!pw) { return 0; }
+    var score = 0;
+    if (pw.length >= 8) { score++; }
+    if (pw.length >= 12) { score++; }
+    if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) { score++; }
+    if (/[0-9]/.test(pw)) { score++; }
+    if (/[^A-Za-z0-9]/.test(pw)) { score++; }
+    return score; /* 0..5 */
+  }
+
+  function applyStrength(pw, barEl, lblEl) {
+    var score = scorePassword(pw);
+    var pct, color, label;
+    if (!pw) {
+      pct = 0; color = "var(--crit)"; label = "enter a password";
+    } else if (score <= 1) {
+      pct = 25; color = "var(--crit)"; label = "weak";
+    } else if (score <= 3) {
+      pct = 60; color = "var(--warn)"; label = "fair";
+    } else {
+      pct = 100; color = "var(--ok)"; label = "strong";
+    }
+    barEl.style.width = pct + "%";
+    barEl.style.background = color;
+    lblEl.textContent = label;
+    lblEl.style.color = pw ? color : "var(--faint)";
+  }
+
+  window.updateStrength = function (pw) {
+    applyStrength(pw, document.getElementById("su-strength-bar"), document.getElementById("su-strength-lbl"));
+  };
+  window.updateResetStrength = function (pw) {
+    applyStrength(pw, document.getElementById("rp-strength-bar"), document.getElementById("rp-strength-lbl"));
+  };
+
+  /* ── PASSWORD MATCH ────────────────────────────────────────── */
+  window.checkMatch = function () {
+    var pw = document.getElementById("rp-pass").value;
+    var cf = document.getElementById("rp-confirm").value;
+    var wrap = document.getElementById("rp-match");
+    var icon = document.getElementById("rp-match-icon");
+    var text = document.getElementById("rp-match-text");
+    var submit = document.getElementById("rp-submit");
+
+    if (!cf) {
+      wrap.classList.remove("show", "err", "ok");
+      submit.disabled = false;
+      return;
+    }
+    wrap.classList.add("show");
+    if (pw === cf) {
+      wrap.classList.remove("err"); wrap.classList.add("ok");
+      icon.textContent = "✓";
+      text.textContent = "Passwords match.";
+      submit.disabled = false;
+    } else {
+      wrap.classList.remove("ok"); wrap.classList.add("err");
+      icon.textContent = "✕";
+      text.textContent = "Passwords don't match. Re-check the confirm field.";
+      submit.disabled = true;
+    }
+  };
+
+  /* ── CHECK YOUR EMAIL: countdown ──────────────────────────────*/
+  var resendTimerId = null;
+  var resendSeconds = 45;
+
+  window.prepCheckEmail = function () {
+    var fp = document.getElementById("fp-email").value.trim();
+    document.getElementById("ce-email").textContent = fp || "you@company.com";
+    startResendCountdown();
+  };
+
+  function startResendCountdown() {
+    var btn = document.getElementById("resend-btn");
+    var timerEl = document.getElementById("resend-timer");
+    resendSeconds = 45;
+    btn.disabled = true;
+    btn.classList.remove("ready");
+    renderTimer();
+    if (resendTimerId) { clearInterval(resendTimerId); }
+    resendTimerId = setInterval(function () {
+      resendSeconds--;
+      if (resendSeconds <= 0) {
+        clearInterval(resendTimerId);
+        resendTimerId = null;
+        btn.disabled = false;
+        btn.classList.add("ready");
+        btn.textContent = "Resend email";
+      } else {
+        renderTimer();
+      }
+    }, 1000);
+    function renderTimer() {
+      var m = Math.floor(resendSeconds / 60);
+      var s = resendSeconds % 60;
+      timerEl.textContent = m + ":" + (s < 10 ? "0" : "") + s;
+    }
+  }
+
+  document.getElementById("resend-btn").addEventListener("click", function () {
+    if (this.disabled) { return; }
+    this.innerHTML = 'Resend in <span id="resend-timer" class="num">0:45</span>';
+    startResendCountdown();
+  });
+
+  /* ── 2FA OTP BOXES ─────────────────────────────────────────── */
+  var otpInputs = Array.prototype.slice.call(document.querySelectorAll("#otp-row input"));
+
+  function focusFirstOtp() {
+    if (otpInputs[0]) { setTimeout(function () { otpInputs[0].focus(); }, 30); }
+  }
+
+  otpInputs.forEach(function (input, idx) {
+    input.addEventListener("input", function () {
+      this.value = this.value.replace(/[^0-9]/g, "").slice(0, 1);
+      if (this.value && idx < otpInputs.length - 1) {
+        otpInputs[idx + 1].focus();
+      }
+    });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Backspace" && !this.value && idx > 0) {
+        otpInputs[idx - 1].focus();
+      }
+    });
+    input.addEventListener("paste", function (e) {
+      var text = (e.clipboardData || window.clipboardData).getData("text");
+      var digits = (text || "").replace(/[^0-9]/g, "").slice(0, otpInputs.length);
+      if (digits.length > 1) {
+        e.preventDefault();
+        digits.split("").forEach(function (d, i) {
+          if (otpInputs[i]) { otpInputs[i].value = d; }
+        });
+        var next = digits.length < otpInputs.length ? digits.length : otpInputs.length - 1;
+        otpInputs[next].focus();
+      }
+    });
+  });
+
+  /* ── ORG SLUG DERIVATION ──────────────────────────────────────*/
+  window.updateSlug = function (name) {
+    var slug = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    var slugInput = document.getElementById("co-slug");
+    var preview = document.getElementById("slug-preview-text");
+    slugInput.value = slug;
+    preview.textContent = slug || "your-org";
+  };
+
+  /* ── INVITE ROWS ───────────────────────────────────────────── */
+  var inviteRowCount = 3;
+
+  window.addInviteRow = function () {
+    var idx = inviteRowCount++;
+    var wrap = document.getElementById("invite-rows");
+    var row = document.createElement("div");
+    row.className = "invite-row";
+    row.innerHTML =
+      '<label class="f" for="inv-email-' + idx + '"><span>Email</span>' +
+      '<input class="t" type="email" id="inv-email-' + idx + '" name="inv-email-' + idx + '" placeholder="teammate@company.com"></label>' +
+      '<label class="f" for="inv-role-' + idx + '"><span>Role</span>' +
+      '<select class="t" id="inv-role-' + idx + '" name="inv-role-' + idx + '">' +
+      '<option value="owner">Owner</option><option value="admin">Admin</option>' +
+      '<option value="editor" selected="">Editor</option><option value="viewer">Viewer</option>' +
+      '</select></label>' +
+      '<button type="button" class="rm" aria-label="Remove this row" onclick="removeInviteRow(this)">' +
+      '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg>' +
+      '</button>';
+    wrap.appendChild(row);
+    var newInput = document.getElementById("inv-email-" + idx);
+    if (newInput) { newInput.focus(); }
+  };
+
+  window.removeInviteRow = function (btn) {
+    var wrap = document.getElementById("invite-rows");
+    if (wrap.children.length <= 1) { return; }
+    btn.closest(".invite-row").remove();
+  };
+
+})();
+</script>

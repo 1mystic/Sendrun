@@ -1,0 +1,325 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════
+   SENDRUN — brand system
+   Ledger palette (ink / warm paper / vermillion)
+   Signal typography (Space Grotesk, bold, tight tracking)
+   Squared geometry: 3px radius.
+
+   This is the approved visual contract from design/prototypes/.
+   Do not introduce a second accent hue.
+   ═══════════════════════════════════════════════════════════════ */
+
+@theme {
+  --color-ink: #14110F;
+  --color-ink-2: #1C1815;
+  --color-ink-3: #241F1B;
+  --color-paper: #F5F1E8;
+  --color-accent: #E4491F;
+  --color-accent-ink: #F5F1E8;
+
+  /* semantic — deliberately separate from the accent.
+     Vermillion means running/attention, NOT error. */
+  --color-ok: #7FB069;
+  --color-warn: #D9A441;
+  --color-crit: #E4491F;
+
+  --font-display: "Space Grotesk", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  --radius-brand: 3px;
+  --ease-brand: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root {
+  --accent-dim: rgba(228, 73, 31, 0.13);
+  --muted: rgba(245, 241, 232, 0.48);
+  --faint: rgba(245, 241, 232, 0.30);
+  --line: rgba(245, 241, 232, 0.11);
+  --line-2: rgba(245, 241, 232, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-display);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Live-status pulse, used by <Pill pulse>. Defined at the top level so it is
+   never tree-shaken out of the Tailwind build. */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+/* Page entrance. Short and subtle — this fires on every navigation, so anything
+   longer than ~400ms starts to feel like latency rather than polish. */
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+main > * {
+  animation: page-in 0.38s var(--ease-brand) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  main > * { animation: none; }
+}
+
+/* ── utility layer ──────────────────────────────────────────── */
+@layer utilities {
+  .text-muted { color: var(--muted); }
+  .text-faint { color: var(--faint); }
+  .border-line { border-color: var(--line); }
+  .border-line-2 { border-color: var(--line-2); }
+  .bg-accent-dim { background: var(--accent-dim); }
+  .num { font-variant-numeric: tabular-nums; }
+}
+
+/* ── components ─────────────────────────────────────────────── */
+@layer components {
+  /* Buttons/pills/chips use mono at 600-700 per the approved system —
+     clear and bold, never thin. */
+  /* Buttons use a fill sweep: a pseudo-element scales in from the left on hover.
+     transform/opacity only, so it stays on the compositor at 60fps — no layout
+     work, unlike animating background-position or width. */
+  .btn {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 10px 18px;
+    border-radius: var(--radius-brand);
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+    border: 1px solid var(--color-accent);
+    transition:
+      transform 0.35s var(--ease-brand),
+      box-shadow 0.35s var(--ease-brand),
+      color 0.25s var(--ease-brand),
+      border-color 0.25s var(--ease-brand);
+  }
+  .btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--color-paper);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.4s var(--ease-brand);
+  }
+  .btn:hover:not(:disabled) {
+    color: var(--color-ink);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px -6px rgba(228, 73, 31, 0.45);
+  }
+  .btn:hover:not(:disabled)::before {
+    transform: scaleX(1);
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(0);
+    transition-duration: 0.08s;
+  }
+  .btn:disabled {
+    opacity: 0.34;
+    cursor: not-allowed;
+  }
+
+  /* Ghost buttons sweep to paper-on-ink — the inverse of the solid variant. */
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-paper);
+    border-color: var(--line-2);
+  }
+  .btn-ghost::before {
+    background: var(--color-paper);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    color: var(--color-ink);
+    border-color: var(--color-paper);
+    box-shadow: 0 6px 18px -6px rgba(245, 241, 232, 0.22);
+  }
+
+  .btn-sm {
+    padding: 6px 12px;
+    font-size: 0.63rem;
+  }
+
+  /* Nav items: an accent rail wipes in from the top, and the label shifts a
+     couple of pixels to meet it. Both transform-driven. */
+  .navitem {
+    position: relative;
+    transition:
+      color 0.22s var(--ease-brand),
+      background 0.22s var(--ease-brand);
+  }
+  .navitem::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--color-accent);
+    transform: scaleY(0);
+    transform-origin: top center;
+    transition: transform 0.3s var(--ease-brand);
+  }
+  .navitem:hover::after,
+  .navitem[data-active="true"]::after {
+    transform: scaleY(1);
+  }
+  .navitem .navitem-label {
+    display: inline-block;
+    transition: transform 0.3s var(--ease-brand);
+  }
+  .navitem:hover .navitem-label {
+    transform: translateX(3px);
+  }
+
+  /* Cards lift and warm their border on hover, but only where the card is
+     actually a link or control — never on static content. */
+  .card-interactive {
+    transition:
+      transform 0.35s var(--ease-brand),
+      border-color 0.35s var(--ease-brand),
+      box-shadow 0.35s var(--ease-brand);
+  }
+  .card-interactive:hover {
+    transform: translateY(-3px);
+    border-color: rgba(228, 73, 31, 0.45);
+    box-shadow: 0 10px 30px -14px rgba(0, 0, 0, 0.7);
+  }
+
+  /* Table rows get a subtle wash plus an accent edge that wipes in. */
+  .row-interactive {
+    transition: background 0.2s var(--ease-brand);
+  }
+  .row-interactive:hover {
+    background: rgba(245, 241, 232, 0.032);
+  }
+
+  /* Text links: underline grows from the left rather than snapping on. */
+  .link-underline {
+    position: relative;
+    text-decoration: none;
+  }
+  .link-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.3s var(--ease-brand);
+  }
+  .link-underline:hover::after {
+    transform: scaleX(1);
+  }
+
+  .card {
+    background: var(--color-ink-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-brand);
+    padding: clamp(18px, 1.6vw, 26px);
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--line-2);
+    color: var(--muted);
+  }
+  .pill-ok { color: var(--color-ok); border-color: rgba(127,176,105,.4); background: rgba(127,176,105,.1); }
+  .pill-run { color: var(--color-accent); border-color: rgba(228,73,31,.45); background: var(--accent-dim); }
+  .pill-warn { color: var(--color-warn); border-color: rgba(217,164,65,.4); background: rgba(217,164,65,.1); }
+  .pill-crit { color: var(--color-crit); border-color: rgba(228,73,31,.45); background: var(--accent-dim); }
+
+  .sec {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 14px;
+  }
+  .sec::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .input {
+    width: 100%;
+    background: var(--color-ink);
+    color: var(--color-paper);
+    border: 1px solid var(--line-2);
+    border-radius: var(--radius-brand);
+    padding: 10px 12px;
+    font-family: var(--font-display);
+    font-size: 0.86rem;
+    transition: border-color 0.18s;
+  }
+  .input:focus {
+    border-color: var(--color-accent);
+    outline: none;
+  }
+
+  .field-label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.61rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+}

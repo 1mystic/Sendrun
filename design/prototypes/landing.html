@@ -1,0 +1,781 @@
+<title>Sendrun</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   SENDRUN — brand system (verbatim from sendrun-prototype.html)
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --ink:        #14110F;
+  --ink-2:      #1C1815;
+  --ink-3:      #241F1B;
+  --paper:      #F5F1E8;
+  --accent:     #E4491F;
+  --accent-ink: #F5F1E8;
+  --accent-dim: rgba(228,73,31,.13);
+
+  --muted:  rgba(245,241,232,.48);
+  --faint:  rgba(245,241,232,.30);
+  --line:   rgba(245,241,232,.11);
+  --line-2: rgba(245,241,232,.18);
+
+  /* semantic — separate from accent */
+  --ok:   #7FB069;
+  --warn: #D9A441;
+  --crit: #E4491F;
+
+  --display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+  --r: 3px;
+  --ease: cubic-bezier(.16,1,.3,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--display);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button { font-family: inherit; cursor: pointer; }
+a { color: inherit; }
+
+.mono { font-family: var(--mono); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ── SHARED CONTAINER ──────────────────────────────────────────
+   Scales up on wide displays instead of stranding a narrow column
+   in the middle. 1800px keeps line lengths sane while using the
+   real estate. */
+.wrap {
+  max-width: 1800px; width: 100%; margin: 0 auto;
+  padding-left: clamp(20px, 4vw, 72px);
+  padding-right: clamp(20px, 4vw, 72px);
+}
+
+/* ── PRIMITIVES (ported from console) ─────────────────────────── */
+.btn {
+  font-family: var(--mono); font-size: .7rem; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase;
+  padding: 12px 22px; border-radius: var(--r);
+  background: var(--accent); color: var(--accent-ink);
+  border: 1px solid var(--accent);
+  transition: filter .2s, transform .2s var(--ease);
+  display: inline-flex; align-items: center; gap: 8px;
+  white-space: nowrap;
+}
+.btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn.ghost { background: transparent; color: var(--paper); border-color: var(--line-2); }
+.btn.ghost:hover { border-color: var(--paper); }
+.btn.sm { padding: 8px 15px; font-size: .64rem; }
+.btn.lg { padding: 15px 28px; font-size: .76rem; }
+
+.card {
+  background: var(--ink-2); border: 1px solid var(--line);
+  border-radius: var(--r); padding: clamp(18px, 1.6vw, 26px);
+}
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: .62rem; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 999px;
+  border: 1px solid var(--line-2); color: var(--muted);
+}
+.pill.on   { color: var(--ok);   border-color: rgba(127,176,105,.4);  background: rgba(127,176,105,.1); }
+.pill.run  { color: var(--accent); border-color: rgba(228,73,31,.45); background: var(--accent-dim); }
+.pill.warn { color: var(--warn); border-color: rgba(217,164,65,.4);  background: rgba(217,164,65,.1); }
+.pill.crit { color: var(--crit); border-color: rgba(228,73,31,.45); background: var(--accent-dim); }
+.pill .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex: none; }
+.pill.run .dot { animation: blink 1.6s var(--ease) infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+.sec {
+  font-family: var(--mono); font-size: .64rem;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--faint); display: flex; align-items: center; gap: 12px;
+  margin: 0 0 14px; font-weight: 600;
+}
+.sec::after { content:''; flex:1; height:1px; background: var(--line); }
+
+.bar { height: 7px; border-radius: 0; overflow: hidden; background: var(--line); display: flex; }
+.bar i { display: block; height: 100%; transition: width 1.1s var(--ease); }
+.bar i.d { background: var(--ok); }
+.bar i.s { background: var(--accent); }
+.bar i.r { background: var(--warn); }
+.bar i.f { background: rgba(228,73,31,.42); }
+
+.gauge { display: flex; align-items: baseline; gap: 10px; }
+.gauge u {
+  text-decoration: none; font-size: 2.3rem; font-weight: 700;
+  letter-spacing: -.04em; font-variant-numeric: tabular-nums; line-height: 1;
+}
+.gauge span { font-family: var(--mono); font-size: .66rem; color: var(--muted); }
+
+.check {
+  display: grid; grid-template-columns: 18px 1fr; gap: 12px; align-items: start;
+  padding: 14px 0; border-bottom: 1px solid var(--line);
+}
+.check:last-child { border-bottom: 0; }
+.check .ic { font-size: .9rem; line-height: 1.4; }
+.check h4 { margin: 0 0 3px; font-size: .86rem; font-weight: 600; letter-spacing: -.01em; }
+.check p { margin: 0; font-size: .8rem; color: var(--muted); line-height: 1.55; }
+
+.feed { display: flex; flex-direction: column; }
+.frow {
+  display: grid; grid-template-columns: 64px 16px 1fr auto;
+  gap: 10px; align-items: center;
+  font-family: var(--mono); font-size: .7rem;
+  padding: 7px 0; border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+.frow:last-child { border-bottom: 0; }
+.frow b { color: var(--paper); font-weight: 400; }
+.frow .g { color: var(--ok); }
+.frow .w { color: var(--warn); }
+.frow .c { color: var(--crit); }
+
+.var {
+  font-family: var(--mono); font-size: .72rem;
+  background: var(--accent-dim); color: var(--accent);
+  padding: 1px 5px; border-radius: 2px;
+}
+
+/* ── MOTION: scroll reveal ─────────────────────────────────────── */
+.rise {
+  opacity: 0; transform: translateY(18px);
+  transition: opacity .7s var(--ease), transform .7s var(--ease);
+}
+.rise.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .rise { opacity: 1; transform: none; transition: none; }
+}
+
+/* ── NAV ──────────────────────────────────────────────────────── */
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(20,17,15,.86); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.nav .wrap {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 20px; padding: 16px clamp(20px, 4vw, 72px);
+}
+.brand {
+  display: flex; align-items: center; gap: 9px;
+  font-weight: 700; letter-spacing: -.02em; font-size: 1.06rem;
+  text-decoration: none;
+}
+.mark {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent); flex: none; position: relative;
+}
+.mark::after {
+  content:''; position: absolute; left: 5.5px; top: 5.5px;
+  width: 11px; height: 11px;
+  border-left: 2px solid var(--accent-ink);
+  border-bottom: 2px solid var(--accent-ink);
+}
+.navlinks { display: flex; align-items: center; gap: clamp(16px, 2vw, 30px); }
+.navlinks a {
+  font-family: var(--mono); font-size: .68rem; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--muted); text-decoration: none; transition: color .18s;
+}
+.navlinks a:hover { color: var(--paper); }
+.navactions { display: flex; align-items: center; gap: 10px; }
+@media (max-width: 760px) { .navlinks { display: none; } }
+
+/* ── HERO ─────────────────────────────────────────────────────── */
+.hero { padding: clamp(48px, 7vw, 96px) 0 clamp(40px, 6vw, 80px); }
+.hero-grid {
+  display: grid; grid-template-columns: 1.15fr .85fr;
+  gap: clamp(28px, 4vw, 64px); align-items: center;
+}
+@media (max-width: 1000px) { .hero-grid { grid-template-columns: 1fr; } }
+
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: .68rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+  margin-bottom: 22px;
+}
+.eyebrow .dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  flex: none; animation: blink 1.6s var(--ease) infinite;
+}
+
+h1.hero-h {
+  font-size: clamp(2.8rem, 6.5vw, 6rem);
+  letter-spacing: -.04em; line-height: .93; font-weight: 700;
+  max-width: 15ch; text-wrap: balance; margin: 0 0 22px;
+}
+h1.hero-h em {
+  font-style: normal; color: var(--accent);
+}
+.hero-lede {
+  color: var(--muted); font-size: clamp(.95rem, 1.1vw, 1.08rem);
+  line-height: 1.65; max-width: 52ch; margin: 0 0 34px;
+}
+.hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 30px; }
+.hero-proof {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  font-family: var(--mono); font-size: .68rem; color: var(--faint);
+}
+.hero-proof b { color: var(--muted); font-weight: 600; }
+
+/* Live panel */
+.livepanel { position: relative; }
+.livepanel .card { position: relative; }
+.lp-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 10px; }
+.lp-title { font-weight: 600; font-size: .92rem; letter-spacing: -.01em; }
+.lp-sub { font-family: var(--mono); font-size: .64rem; color: var(--faint); margin-top: 3px; }
+.lp-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-top: 16px; }
+.lp-stat { border-left: 2px solid var(--line-2); padding: 2px 0 2px 10px; }
+.lp-stat.d { border-left-color: var(--ok); }
+.lp-stat.s { border-left-color: var(--accent); }
+.lp-stat.r { border-left-color: var(--warn); }
+.lp-stat u {
+  display: block; text-decoration: none; font-size: 1.1rem; font-weight: 700;
+  letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums;
+}
+.lp-stat span { font-family: var(--mono); font-size: .56rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lp-feed-wrap { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+
+/* ── PROOF STRIP ──────────────────────────────────────────────── */
+.proof {
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  background: var(--ink-2);
+}
+.proof .wrap {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: clamp(20px,3vw,0px);
+  padding: clamp(28px,3.4vw,44px) clamp(20px, 4vw, 72px);
+}
+.proof-item {
+  padding: 0 clamp(14px,2vw,28px);
+  border-left: 1px solid var(--line);
+}
+.proof-item:first-child { border-left: 0; padding-left: 0; }
+.proof-item u {
+  display: block; text-decoration: none; font-size: clamp(1.5rem,2.2vw,2.1rem);
+  font-weight: 700; letter-spacing: -.03em; line-height: 1.05;
+}
+.proof-item span {
+  display: block; margin-top: 6px; font-family: var(--mono); font-size: .68rem;
+  color: var(--muted); line-height: 1.4;
+}
+@media (max-width: 900px) { .proof .wrap { grid-template-columns: 1fr 1fr; row-gap: 24px; } .proof-item:nth-child(3) { border-left: 0; } }
+@media (max-width: 560px) { .proof .wrap { grid-template-columns: 1fr; } .proof-item { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 20px; } .proof-item:first-child { border-top: 0; padding-top: 0; } }
+
+/* ── SECTION SHELL ────────────────────────────────────────────── */
+.section { padding: clamp(56px, 7vw, 112px) 0; }
+.section-head { max-width: 62ch; margin-bottom: clamp(32px, 4vw, 52px); }
+.section-eyebrow {
+  font-family: var(--mono); font-size: .66rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--accent);
+  margin: 0 0 12px;
+}
+h2.section-h {
+  font-size: clamp(1.8rem, 3.2vw, 2.8rem); letter-spacing: -.035em;
+  line-height: 1.05; font-weight: 700; margin: 0 0 12px; text-wrap: balance;
+}
+.section-p { color: var(--muted); font-size: .95rem; line-height: 1.65; margin: 0; }
+
+/* ── HOW IT WORKS ─────────────────────────────────────────────── */
+.flow { display: grid; grid-template-columns: repeat(5,1fr); gap: 14px; }
+@media (max-width: 1100px) { .flow { grid-template-columns: repeat(3,1fr); } }
+@media (max-width: 700px) { .flow { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 460px) { .flow { grid-template-columns: 1fr; } }
+.flow-step {
+  padding: clamp(18px,1.6vw,24px); border: 1px solid var(--line); border-radius: var(--r);
+  background: var(--ink-2); transition: transform .3s var(--ease), border-color .3s var(--ease);
+}
+.flow-step:hover { transform: translateY(-2px); border-color: var(--line-2); }
+.flow-num {
+  font-family: var(--mono); font-size: .72rem; font-weight: 700; color: var(--accent);
+  letter-spacing: .04em; margin-bottom: 14px;
+}
+.flow-step h3 { font-size: 1rem; font-weight: 600; letter-spacing: -.015em; margin: 0 0 8px; }
+.flow-step p { font-size: .8rem; color: var(--muted); line-height: 1.55; margin: 0; }
+
+/* ── DURABILITY (centerpiece) ─────────────────────────────────── */
+.durability {
+  background: var(--ink-2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+}
+.dur-grid { display: grid; grid-template-columns: .95fr 1.05fr; gap: clamp(32px,4vw,64px); align-items: start; }
+@media (max-width: 1000px) { .dur-grid { grid-template-columns: 1fr; } }
+
+.invariant {
+  display: inline-flex; align-items: center; gap: 10px;
+  border: 1px solid rgba(127,176,105,.35); background: rgba(127,176,105,.08);
+  border-radius: var(--r); padding: 12px 16px; margin-top: 26px;
+}
+.invariant .n {
+  font-family: var(--mono); font-size: 1.4rem; font-weight: 700; color: var(--ok);
+  letter-spacing: -.03em; font-variant-numeric: tabular-nums;
+}
+.invariant .t { font-size: .78rem; color: var(--muted); line-height: 1.4; max-width: 32ch; }
+
+/* Rail and dots share one geometry so they cannot drift apart.
+   --tl-rail is the x of the rail's centre line; the dot is centred on it with
+   translateX(-50%), and vertically centred on the first text line via
+   translateY(-50%) at a top equal to half that line's height. */
+.timeline {
+  position: relative;
+  padding-left: 30px;
+  --tl-rail: 6px;
+  --tl-dot: 11px;
+}
+.timeline::before {
+  content: ''; position: absolute;
+  left: var(--tl-rail); transform: translateX(-50%);
+  top: 8px; bottom: 8px; width: 2px;
+  background: linear-gradient(var(--line-2), var(--line));
+}
+.tl-item { position: relative; padding-bottom: 26px; }
+.tl-item:last-child { padding-bottom: 0; }
+.tl-item::before {
+  content: ''; position: absolute;
+  left: calc(var(--tl-rail) - 30px);
+  top: 8px;
+  transform: translate(-50%, -50%);
+  width: var(--tl-dot); height: var(--tl-dot);
+  border-radius: 50%; background: var(--ink-2);
+  border: 2px solid var(--line-2); z-index: 1;
+  box-sizing: border-box;
+}
+.tl-item.crit::before { border-color: var(--crit); background: var(--ink-2); }
+.tl-item.warn::before { border-color: var(--warn); }
+.tl-item.ok::before { border-color: var(--ok); background: var(--ok); }
+.tl-time { font-family: var(--mono); font-size: .62rem; color: var(--faint); letter-spacing: .04em; margin-bottom: 4px; }
+.tl-item h4 { margin: 0 0 4px; font-size: .92rem; font-weight: 600; letter-spacing: -.01em; }
+.tl-item p { margin: 0; font-size: .82rem; color: var(--muted); line-height: 1.55; max-width: 46ch; }
+.tl-item .kv { font-family: var(--mono); font-size: .68rem; color: var(--accent); }
+
+/* ── PREFLIGHT SECTION ────────────────────────────────────────── */
+.preflight-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: clamp(24px,3vw,40px); align-items: start; }
+@media (max-width: 1000px) { .preflight-grid { grid-template-columns: 1fr; } }
+.recommend-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: .64rem; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--paper);
+  border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 12px; margin-top: 18px;
+}
+.recommend-badge b { color: var(--accent); }
+
+/* ── FEATURE GRID ─────────────────────────────────────────────── */
+.fgrid { display: grid; grid-template-columns: repeat(3,1fr); gap: clamp(14px,1.4vw,20px); }
+@media (max-width: 980px) { .fgrid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .fgrid { grid-template-columns: 1fr; } }
+.feature {
+  padding: clamp(20px,1.8vw,28px); border: 1px solid var(--line); border-radius: var(--r);
+  background: var(--ink-2); transition: transform .3s var(--ease), border-color .3s var(--ease);
+}
+.feature:hover { transform: translateY(-2px); border-color: var(--line-2); }
+.feature .fi {
+  width: 34px; height: 34px; border-radius: var(--r); background: var(--accent-dim);
+  color: var(--accent); display: grid; place-items: center; margin-bottom: 16px;
+}
+.feature .fi svg { width: 18px; height: 18px; }
+.feature h3 { font-size: .98rem; font-weight: 600; letter-spacing: -.015em; margin: 0 0 8px; }
+.feature p { font-size: .82rem; color: var(--muted); line-height: 1.6; margin: 0; }
+
+/* ── FINAL CTA ────────────────────────────────────────────────── */
+.finalcta {
+  text-align: center; padding: clamp(64px,8vw,120px) 0;
+  border-top: 1px solid var(--line);
+}
+.finalcta h2 {
+  font-size: clamp(2rem, 4vw, 3.4rem); letter-spacing: -.04em; line-height: 1.02;
+  font-weight: 700; margin: 0 auto 16px; max-width: 20ch; text-wrap: balance;
+}
+.finalcta p { color: var(--muted); font-size: .96rem; margin: 0 auto 30px; max-width: 48ch; line-height: 1.6; }
+.finalcta .btn { padding: 15px 32px; font-size: .78rem; }
+
+/* ── FOOTER ───────────────────────────────────────────────────── */
+.foot { border-top: 1px solid var(--line); padding: clamp(40px,5vw,64px) 0 30px; }
+.foot-grid { display: grid; grid-template-columns: 1.4fr repeat(3,1fr); gap: 32px; margin-bottom: 40px; }
+@media (max-width: 760px) { .foot-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 460px) { .foot-grid { grid-template-columns: 1fr; } }
+.foot-brand .brand { margin-bottom: 12px; }
+.foot-brand p { color: var(--faint); font-size: .8rem; line-height: 1.6; max-width: 34ch; margin: 0; }
+.foot-col h5 {
+  font-family: var(--mono); font-size: .62rem; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--faint); margin: 0 0 14px;
+}
+.foot-col a {
+  display: block; color: var(--muted); text-decoration: none; font-size: .82rem;
+  margin-bottom: 10px; transition: color .18s; width: fit-content;
+}
+.foot-col a:hover { color: var(--paper); }
+.foot-bottom {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap; padding-top: 24px; border-top: 1px solid var(--line);
+  font-family: var(--mono); font-size: .68rem; color: var(--faint);
+}
+.foot-note { color: var(--faint); }
+.foot-note b { color: var(--muted); font-weight: 500; }
+</style>
+
+<!-- ══════ NAV ══════ -->
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><span class="mark"></span> Sendrun</a>
+    <div class="navlinks">
+      <a href="#how">Platform</a>
+      <a href="#durability">Reliability</a>
+      <a href="#docs">Docs</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div class="navactions">
+      <button class="btn ghost sm">Sign in</button>
+      <button class="btn sm">Start free</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════ HERO ══════ -->
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow"><span class="dot"></span> Now reconciling 24,918 sends in production</div>
+      <h1 class="hero-h">Every send is a job that <em>cannot</em> duplicate itself.</h1>
+      <p class="hero-lede">Sendrun runs email campaigns as independent, idempotent jobs. Kill a worker mid-campaign — nothing is lost, and nothing is sent twice. AI checks your campaign before launch; it never sends without you.</p>
+      <div class="hero-cta">
+        <button class="btn lg">Start free</button>
+        <button class="btn ghost lg">See how it works</button>
+      </div>
+      <div class="hero-proof">
+        <span><b>0</b> duplicate sends</span>
+        <span>·</span>
+        <span><b>97.4%</b> delivery</span>
+        <span>·</span>
+        <span><b>100%</b> events reconciled</span>
+      </div>
+    </div>
+
+    <div class="livepanel rise">
+      <div class="card">
+        <div class="lp-top">
+          <div>
+            <div class="lp-title">Hackathon Speaker Outreach</div>
+            <div class="lp-sub mono">campaign_8231 · 122 jobs</div>
+          </div>
+          <span class="pill run"><span class="dot"></span> Running</span>
+        </div>
+        <div class="bar">
+          <i class="d" style="width:0%" data-w="66"></i><i class="s" style="width:0%" data-w="9"></i><i class="r" style="width:0%" data-w="3"></i><i class="f" style="width:0%" data-w="1"></i>
+        </div>
+        <div class="lp-stats">
+          <div class="lp-stat d"><u class="num">81</u><span>Delivered</span></div>
+          <div class="lp-stat s"><u class="num">11</u><span>Sending</span></div>
+          <div class="lp-stat r"><u class="num">4</u><span>Retrying</span></div>
+          <div class="lp-stat"><u class="num">0</u><span>Duplicated</span></div>
+        </div>
+        <div class="lp-feed-wrap">
+          <div class="feed" id="hero-feed">
+            <div class="frow"><span class="mono">14:03:19</span><span class="g">✓</span><b>Lease acquired · worker_a</b><span></span></div>
+            <div class="frow"><span class="mono">14:03:21</span><span class="w">⚠</span><b>worker_a died mid-send</b><span></span></div>
+            <div class="frow"><span class="mono">14:03:49</span><span class="c">↻</span><b>Reaper expired lease</b><span></span></div>
+            <div class="frow"><span class="mono">14:03:50</span><span class="g">✓</span><b>Re-picked by worker_c</b><span></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ══════ PROOF STRIP ══════ -->
+<section class="proof">
+  <div class="wrap">
+    <div class="proof-item rise"><u class="num">0</u><span>Duplicate sends across 24,918 emails delivered</span></div>
+    <div class="proof-item rise"><u class="num">97.4%</u><span>Average delivery rate across all campaigns</span></div>
+    <div class="proof-item rise"><u class="num">5</u><span>Retry attempts per job before dead-lettering</span></div>
+    <div class="proof-item rise"><u class="num">100%</u><span>Provider events reconciled to a final state</span></div>
+  </div>
+</section>
+
+<!-- ══════ HOW IT WORKS ══════ -->
+<section class="section" id="how">
+  <div class="wrap">
+    <div class="section-head rise">
+      <p class="section-eyebrow">Platform</p>
+      <h2 class="section-h">Five steps, in order, every time.</h2>
+      <p class="section-p">A campaign moves through a fixed sequence. Nothing skips a step, and every step leaves a record.</p>
+    </div>
+    <div class="flow">
+      <div class="flow-step rise"><div class="flow-num">01</div><h3>Select</h3><p>Resolve recipients from tags, groups, or a smart filter into a fixed list before anything else runs.</p></div>
+      <div class="flow-step rise"><div class="flow-num">02</div><h3>Compose</h3><p>Write once with personalization variables. Preview exactly how each recipient will see it.</p></div>
+      <div class="flow-step rise"><div class="flow-num">03</div><h3>Preflight</h3><p>AI checks links, missing variables, and spam risk. You review every flag before approving.</p></div>
+      <div class="flow-step rise"><div class="flow-num">04</div><h3>Execute</h3><p>Each recipient becomes an independent job with its own retry budget, sent under an idempotency key.</p></div>
+      <div class="flow-step rise"><div class="flow-num">05</div><h3>Reconcile</h3><p>Provider webhooks settle delivery state for hours after completion, deduplicated and ranked.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ DURABILITY ══════ -->
+<section class="section durability" id="durability">
+  <div class="wrap">
+    <div class="section-head rise">
+      <p class="section-eyebrow">Reliability</p>
+      <h2 class="section-h">Kill a worker. Watch nothing break.</h2>
+      <p class="section-p">This is the guarantee the whole system is built around. A worker can die at any point, mid-send, with no cleanup — and the campaign still finishes with exactly one send per recipient.</p>
+    </div>
+
+    <div class="dur-grid">
+      <div class="rise">
+        <div class="card">
+          <div class="sec">Why it holds</div>
+          <p style="font-size:.85rem;color:var(--muted);line-height:1.7;margin:0 0 14px">
+            Every job is claimed with a time-boxed lease, not a permanent assignment. If the worker holding it disappears, the lease simply runs out — no signal from the dead worker is required.
+          </p>
+          <p style="font-size:.85rem;color:var(--muted);line-height:1.7;margin:0">
+            A background reaper watches for expired leases and returns those jobs to pending. Whichever worker picks a job up next sends under the <b style="color:var(--paper)">same idempotency key</b> the first attempt would have used — so if the dead worker's request actually reached the provider, the retry is recognized and discarded, not duplicated.
+          </p>
+        </div>
+        <div class="invariant">
+          <span class="n num">0</span>
+          <span class="t">duplicate sends, held through any number of crashes — the one invariant that cannot break</span>
+        </div>
+      </div>
+
+      <div class="card rise">
+        <div class="sec">job_4f9a·c21e — timeline</div>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-time">14:03:19.402</div>
+            <h4>Lease acquired</h4>
+            <p><span class="kv">worker_a</span> claims the job, 30s lease.</p>
+          </div>
+          <div class="tl-item warn">
+            <div class="tl-time">14:03:21.118</div>
+            <h4>Worker dies mid-send</h4>
+            <p>No provider call was made. The lease is now orphaned — nobody is coming back for it.</p>
+          </div>
+          <div class="tl-item crit">
+            <div class="tl-time">14:03:49.402</div>
+            <h4>Lease expires</h4>
+            <p>The reaper notices the lease timed out and returns the job to <span class="kv">pending</span>.</p>
+          </div>
+          <div class="tl-item">
+            <div class="tl-time">14:03:50.006</div>
+            <h4>Re-picked</h4>
+            <p><span class="kv">worker_c</span> claims the job fresh. No message_id on record — safe to send.</p>
+          </div>
+          <div class="tl-item ok">
+            <div class="tl-time">14:03:50.204</div>
+            <h4>Sent, once</h4>
+            <p>Provider accepts under idempotency key <span class="kv">job_4f9a·c21e</span>. Duplicate sends: still zero.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ AI PREFLIGHT ══════ -->
+<section class="section" id="preflight">
+  <div class="wrap">
+    <div class="preflight-grid">
+      <div class="rise">
+        <p class="section-eyebrow">AI preflight</p>
+        <h2 class="section-h">It recommends. You approve.</h2>
+        <p class="section-p">Before a single email goes out, AI checks the campaign for problems a human would otherwise catch too late — missing personalization, broken links, addresses likely to bounce. It flags every issue with a specific fix. It never sends anything on its own.</p>
+        <div class="recommend-badge">Preflight <b>recommends</b> — a person <b>approves</b></div>
+      </div>
+
+      <div class="card rise">
+        <div class="sec">Preflight report · campaign_8231</div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:6px">
+          <div class="gauge"><u style="color:var(--warn)">91</u><span>/ 100<br>personalization</span></div>
+          <div class="gauge"><u style="color:var(--ok)">18</u><span>/ 100<br>spam risk</span></div>
+          <div class="gauge"><u style="color:var(--ok)">96.1<span style="font-size:.5em">%</span></u><span>predicted<br>delivery</span></div>
+        </div>
+        <div style="margin-top:8px">
+          <div class="check">
+            <span class="ic" style="color:var(--warn)">⚠</span>
+            <div><h4>7 recipients missing <span class="var">specialization</span></h4>
+              <p>The sentence referencing it would read broken. Set a fallback, or exclude these 7.</p></div>
+          </div>
+          <div class="check">
+            <span class="ic" style="color:var(--crit)">✕</span>
+            <div><h4>5 addresses are high bounce risk</h4>
+              <p>Previously hard-bounced or inactive 18+ months. Sending costs sender reputation.</p></div>
+          </div>
+          <div class="check">
+            <span class="ic" style="color:var(--ok)">✓</span>
+            <div><h4>All links resolve</h4>
+              <p>1 link checked · 200 OK · no redirect chain.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ FEATURE GRID ══════ -->
+<section class="section" id="features">
+  <div class="wrap">
+    <div class="section-head rise">
+      <p class="section-eyebrow">Under the hood</p>
+      <h2 class="section-h">Built for what happens when things go wrong.</h2>
+      <p class="section-p">Most email tools are designed for the happy path. Sendrun is designed for the rest of it.</p>
+    </div>
+    <div class="fgrid">
+      <div class="feature rise">
+        <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></div>
+        <h3>Independent jobs</h3>
+        <p>Every recipient is its own job with its own state, retry count, and backoff schedule. One failure never touches another recipient's send.</p>
+      </div>
+      <div class="feature rise">
+        <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <h3>Idempotent sends</h3>
+        <p>Every send carries an idempotency key. A retry, a webhook replay, or a re-picked job can never turn into a duplicate email.</p>
+      </div>
+      <div class="feature rise">
+        <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v4"/><circle cx="12" cy="12" r="4"/><path d="M12 17v4"/><path d="m5 7 3 2"/><path d="m16 15 3 2"/></svg></div>
+        <h3>Crash recovery</h3>
+        <p>Leases expire automatically. A reaper returns orphaned jobs to pending so another worker finishes what a dead one started.</p>
+      </div>
+      <div class="feature rise">
+        <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+        <h3>Webhook reconciliation</h3>
+        <p>Provider events drive true delivery state. Duplicate and out-of-order events are deduplicated and applied by precedence rank.</p>
+      </div>
+      <div class="feature rise">
+        <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m13 2-9 12h7l-2 8 9-12h-7z"/></svg></div>
+        <h3>AI preflight</h3>
+        <p>Links, personalization variables, and spam risk are checked before launch. It flags and recommends — a person always approves.</p>
+      </div>
+      <div class="feature rise">
+        <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 6a3 3 0 0 1 0 6"/><path d="M18 20a5 5 0 0 0-2-4"/></svg></div>
+        <h3>ML recipient intelligence</h3>
+        <p>Bounce risk and engagement are predicted per recipient from send history, so you know who's at risk before you send.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ FINAL CTA ══════ -->
+<section class="finalcta">
+  <div class="wrap">
+    <h2 class="rise">Send campaigns that survive their own infrastructure.</h2>
+    <p class="rise">No duplicate sends. No lost jobs. No manual reconciliation. Start a campaign in minutes.</p>
+    <button class="btn lg rise">Start free</button>
+  </div>
+</section>
+
+<!-- ══════ FOOTER ══════ -->
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="brand" href="#top"><span class="mark"></span> Sendrun</a>
+        <p>A durable, AI-assisted email campaign platform. Every recipient is an independent, idempotent job.</p>
+      </div>
+      <div class="foot-col">
+        <h5>Product</h5>
+        <a href="#how">Platform</a>
+        <a href="#durability">Reliability</a>
+        <a href="#preflight">AI preflight</a>
+        <a href="#pricing">Pricing</a>
+      </div>
+      <div class="foot-col">
+        <h5>Docs</h5>
+        <a href="#docs">Getting started</a>
+        <a href="#docs">API reference</a>
+        <a href="#docs">Job inspector</a>
+        <a href="#docs">Chaos mode</a>
+      </div>
+      <div class="foot-col">
+        <h5>Company</h5>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+        <a href="#status">Status</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Sendrun</span>
+      <span class="foot-note">A final-year engineering project — <b>built to demonstrate durable, at-least-once-but-never-twice delivery.</b></span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ── Scroll reveal ──────────────────────────────────────────
+  var revealEls = document.querySelectorAll(".rise");
+  if (reduceMotion || !("IntersectionObserver" in window)) {
+    revealEls.forEach(function (el) { el.classList.add("in"); });
+  } else {
+    var seen = 0;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          var el = entry.target;
+          var delay = (seen % 6) * 70;
+          seen++;
+          setTimeout(function () { el.classList.add("in"); }, delay);
+          io.unobserve(el);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+    revealEls.forEach(function (el) { io.observe(el); });
+  }
+
+  // ── Hero progress bar fill-in ──────────────────────────────
+  var bars = document.querySelectorAll(".livepanel .bar i[data-w]");
+  if (bars.length) {
+    var fill = function () {
+      bars.forEach(function (i) {
+        i.style.width = i.getAttribute("data-w") + "%";
+      });
+    };
+    if (reduceMotion) {
+      fill();
+    } else {
+      setTimeout(fill, 300);
+    }
+  }
+
+  // ── Hero live feed: append a settling event after load ─────
+  var feed = document.getElementById("hero-feed");
+  if (feed && !reduceMotion) {
+    setTimeout(function () {
+      var row = document.createElement("div");
+      row.className = "frow";
+      row.innerHTML = '<span class="mono">14:03:52</span><span class="g">✓</span><b>Idempotency hit — 0 duplicates</b><span></span>';
+      row.style.opacity = "0";
+      row.style.transition = "opacity .5s " + "cubic-bezier(.16,1,.3,1)";
+      feed.appendChild(row);
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { row.style.opacity = "1"; });
+      });
+    }, 1400);
+  }
+
+  // ── Smooth in-page anchor scroll (respects reduced motion) ─
+  document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      var id = a.getAttribute("href");
+      if (id.length < 2) return;
+      var target = document.querySelector(id);
+      if (!target) return;
+      e.preventDefault();
+      target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    });
+  });
+})();
+</script>
