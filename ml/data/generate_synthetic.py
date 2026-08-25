@@ -172,7 +172,7 @@ def generate_sends(
                 + 5.0 * min(prior_bounce_rate, 1.0)       # dominant driver: own bounce history
                 + 0.12 * min(c.prior_bounces, 5)          # raw count, secondary to the rate
                 + 0.0003 * c.contact_age_days             # staler contact -> mildly higher risk
-                - 0.03 * min(c.prior_sends, 10)           # more history (if not bouncy) -> lower risk
+                - 0.03 * min(c.prior_sends, 10)           # more clean history -> lower risk
                 + 0.15 * camp.attachment_count
                 + local_rng.normal(0, 0.08)
             )

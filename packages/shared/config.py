@@ -20,9 +20,23 @@ class Settings(BaseSettings):
     resend_webhook_secret: str = ""
     fake_webhook_secret: str = "fake-webhook-secret"
 
-    llm_provider: Literal["fake", "anthropic", "openai"] = "fake"
+    llm_provider: Literal["fake", "anthropic", "openai", "openrouter"] = "fake"
     anthropic_api_key: str = ""
     openai_api_key: str = ""
+    # OpenRouter: one API key, one OpenAI-compatible endpoint, routes to
+    # 100+ underlying models (Claude, GPT, Llama, Mistral, Gemini, ...) by
+    # qualifying the model name, e.g. "anthropic/claude-sonnet-4.5". See
+    # packages/shared/providers/llm_http.py::OpenRouterProvider.
+    openrouter_api_key: str = ""
+    openrouter_site_url: str = ""
+
+    # Off by default: an unset tracking URI makes mlflow silently create a
+    # local ./mlruns store on first use, which is a real filesystem side
+    # effect nothing (tests especially) should trigger by accident. Preflight
+    # falls back to its neutral delivery estimate when this is disabled — see
+    # services/api/routers/preflight.py.
+    bounce_model_enabled: bool = False
+    mlflow_tracking_uri: str = ""
 
     from_address: str = "hello@sendrun.test"
     from_name: str = "Sendrun"
