@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { ORG } from "@/lib/mock";
+import { ORG, USER } from "@/lib/mock";
 
 const NAV = [
   {
@@ -126,14 +126,82 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
   );
 }
 
-function OrgFooter() {
+function OrgFooter({ onNavigate }: { onNavigate?: () => void }) {
+  const router = useRouter();
+
+  function signOut() {
+    // No session to clear yet. When auth lands this posts to /api/auth/signout
+    // and lets the server expire the cookie before redirecting.
+    onNavigate?.();
+    router.push("/signin");
+  }
+
   return (
     <div className="mt-auto px-[18px] pt-4" style={{ borderTop: "1px solid var(--line)" }}>
-      <div className="text-muted text-[.78rem]">
+      <div className="text-muted mb-3 text-[.78rem]">
         <b className="block text-[.84rem] font-medium" style={{ color: "var(--color-paper)" }}>
           {ORG.name}
         </b>
         {ORG.members} members · {ORG.role}
+      </div>
+
+      <div className="flex items-center gap-2.5">
+        <span
+          className="grid flex-none place-items-center rounded-full"
+          style={{
+            width: 28,
+            height: 28,
+            background: "var(--color-ink-3)",
+            border: "1px solid var(--line-2)",
+            fontFamily: "var(--font-mono)",
+            fontSize: ".62rem",
+            fontWeight: 600,
+            color: "var(--muted)",
+          }}
+          aria-hidden="true"
+        >
+          {USER.initials}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[.8rem] font-medium">{USER.name}</div>
+          <div
+            className="text-faint truncate"
+            style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem" }}
+          >
+            {USER.email}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={signOut}
+          title="Sign out"
+          aria-label="Sign out"
+          className="signout grid flex-none place-items-center"
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 3,
+            border: "1px solid var(--line-2)",
+            background: "transparent",
+            color: "var(--muted)",
+          }}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <path d="m16 17 5-5-5-5" />
+            <path d="M21 12H9" />
+          </svg>
+        </button>
       </div>
     </div>
   );
@@ -224,7 +292,7 @@ export default function Shell({
           <MenuToggle open={open} onClick={() => setOpen(false)} />
         </div>
         <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} />
-        <OrgFooter />
+        <OrgFooter onNavigate={() => setOpen(false)} />
       </aside>
 
       <div className="flex min-w-0 flex-col">

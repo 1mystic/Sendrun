@@ -15,33 +15,20 @@
 .a-formpane {
   grid-column: 2;
   grid-row: 1;
-}
-.a-brandpane {
-  grid-column: 1;
-  grid-row: 1;
-}
-@media (max-width: 900px) {
-  .a-shell {
-    grid-template-columns: 1fr;
-    min-height: 100dvh; /* dvh, so mobile browser chrome does not clip the form */
-  }
-  .a-formpane {
-    grid-column: 1;
-    align-items: flex-start;
-    padding: clamp(20px, 6vw, 40px) clamp(18px, 5vw, 36px) 48px;
-  }
-  .a-brandpane {
-    display: none;
-  }
-}
-
-.a-formpane {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: clamp(24px, 5vw, 72px);
   min-width: 0;
 }
+.a-brandpane {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+/* NOTE: every responsive override for the shell lives in ONE block at the
+   bottom of this file. Media queries placed here would be undone by the
+   unconditional rules that follow them — same specificity, later wins. */
 
 /* Single branding: the brand pane owns the logo on desktop, so the form's own
    lockup is suppressed there. Below 900px the brand pane is hidden, so the
@@ -60,13 +47,6 @@
   margin-right: auto;
   margin-left: clamp(8px, 2vw, 40px);
 }
-@media (max-width: 900px) {
-  .a-formwrap {
-    margin-left: 0;
-    max-width: 480px;
-  }
-}
-
 .a-brand-lockup {
   display: flex;
   align-items: center;
@@ -492,4 +472,47 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--faint);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE — must stay LAST in this file.
+   These override base rules of equal specificity, so anything
+   declared after them would silently win and undo the mobile layout.
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+  /* Single column: the brand pane is dropped and the form takes the full
+     width. dvh rather than vh so mobile browser chrome cannot clip the
+     submit button off the bottom of the viewport. */
+  .a-shell {
+    grid-template-columns: 1fr;
+    min-height: 100dvh;
+  }
+  .a-brandpane {
+    display: none !important;
+  }
+  .a-formpane {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: clamp(24px, 7vw, 44px) clamp(18px, 5vw, 32px) 56px;
+  }
+  .a-formwrap {
+    margin-left: 0;
+    margin-right: 0;
+    max-width: 480px;
+    animation: none; /* entrance motion is desktop-only polish */
+  }
+}
+
+@media (max-width: 520px) {
+  .a-formwrap h1 {
+    font-size: 1.5rem;
+  }
+  /* Full-width tap targets: easier to hit with a thumb. */
+  .a-formwrap .btn {
+    width: 100%;
+  }
 }

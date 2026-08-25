@@ -232,6 +232,20 @@ main > * {
     background: rgba(245, 241, 232, 0.032);
   }
 
+  /* Sign out. Uses the crit tone on hover — it ends the session, so it should
+     read as consequential rather than as another neutral nav item. */
+  .signout {
+    transition:
+      color 0.2s var(--ease-brand),
+      border-color 0.2s var(--ease-brand),
+      background 0.2s var(--ease-brand);
+  }
+  .signout:hover {
+    color: var(--color-crit);
+    border-color: rgba(228, 73, 31, 0.45);
+    background: var(--accent-dim);
+  }
+
   /* Text links: underline grows from the left rather than snapping on. */
   .link-underline {
     position: relative;
