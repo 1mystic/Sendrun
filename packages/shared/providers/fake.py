@@ -26,9 +26,10 @@ import hashlib
 import hmac
 import json
 import random
-from dataclasses import asdict, dataclass
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 from .base import (
     EmailProvider,
@@ -305,7 +306,8 @@ class FakeEmailProvider(EmailProvider):
     @property
     def duplicate_sends(self) -> int:
         """The invariant. Must be zero after any number of crashes and retries."""
-        return 0 if self.provider_sends <= self._unique_keys() else self.provider_sends - self._unique_keys()
+        excess = self.provider_sends - self._unique_keys()
+        return max(excess, 0)
 
     def _unique_keys(self) -> int:
         cache = self._cache

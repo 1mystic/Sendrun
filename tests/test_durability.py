@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import datetime
 from uuid import UUID, uuid4
 
 import pytest

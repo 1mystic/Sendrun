@@ -35,7 +35,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Final
 from uuid import UUID, uuid4

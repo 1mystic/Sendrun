@@ -61,13 +61,22 @@ dump.rdb
 # ── ML / MLOps ──────────────────────────────────────────────────
 mlruns/
 mlartifacts/
+ml/mlflow.db
 *.pkl
 *.joblib
 *.onnx
 *.pt
 *.ckpt
-ml/data/
-!ml/data/.gitkeep
+*.skops
+# Generated data/reports/figures — regenerate via ml/data/generate_synthetic.py,
+# ml/data/eda.py, ml/evaluation/evaluate.py. Not source; large and reproducible.
+# (File-pattern rules, not a directory rule: git cannot re-include files with
+# a `!` negation inside a directory that was itself ignored wholesale.)
+ml/data/*.parquet
+ml/data/*.csv
+ml/data/eda_report.txt
+ml/data/eda_figures/
+ml/evaluation/figures/
 
 # ── dbt ─────────────────────────────────────────────────────────
 analytics/dbt/target/
@@ -107,3 +116,13 @@ scratch/
 # The VibeCurb skills are installed in .claude/skills/; the zip itself
 # does not belong in the repo.
 design-sources.zip
+
+# ── Claude Code / agent working files ────────────────────────────
+# Kept LOCAL rather than pushed to GitHub, at the user's request. If files
+# under these paths are already tracked from an earlier commit, adding them
+# here does not untrack them — see the `git rm -r --cached` step in the
+# commit instructions.
+.claude/
+CLAUDE.md
+PLAN.md
+NEXT.md

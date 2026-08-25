@@ -7,6 +7,16 @@ description: Onboard onto the Sendrun codebase in one read. Use at the start of 
 
 Read this once and you can work. Do not re-derive it by exploring the tree.
 
+**Current phase: Phases 1–4 done (domain, email engine, campaign launch, webhooks/SSE).
+Next: the janitor + a real Postgres verification pass, then wiring the frontend to the
+real API.** For exactly what was built, what's verified passing, and the next task in
+order, read `NEXT.md` at the repo root — it is kept current at the end of every session
+and is more precise than this file about "where things stand today." It also documents
+an important scope boundary: no Postgres/Docker is available in this dev environment, so
+the durable engine's real `FOR UPDATE SKIP LOCKED` dequeue SQL has never been run live —
+only its logic (via fakes) and the ORM-based job store (which is dialect-portable) are
+verified. Read that section before assuming the worker is deploy-ready.
+
 ---
 
 ## What it is
