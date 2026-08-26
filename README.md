@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="design/banner/readme-banner.svg" alt="Sendrun — durable, AI-assisted email campaign platform" width="100%">
+</p>
+
 # Sendrun
 
 **Durable, AI-assisted email campaign platform.** A final-year AI/ML portfolio project
@@ -71,11 +75,18 @@ for the full list with reasoning. The two that matter most:
 | 3 | Durable engine, campaign launch/cancel, the worker process | ✅ |
 | 4 | Webhook ingestion, dedup, orphan resolution, SSE progress | ✅ |
 | 5 | AI preflight — spam-risk heuristic, missing-variable audit, link validation | ✅ |
-| 6 | ML — bounce-risk model (ROC-AUC 0.84) trained, MLflow-tracked, drift detection | 🟡 partial |
-| 7 | LLM-backed agents (planner, content, QA, recipient, analytics) | 🟡 provider layer only |
-| 8 | Hardening, CI/CD, deploy | ⬜ |
+| 6 | ML — bounce-risk, engagement, and send-time models (MLflow-tracked, registered), A/B testing, drift detection | ✅ |
+| 7 | LLM-backed agents (QA, Analytics) on the structured-tool-call security boundary | ✅ |
+| 8 | Hardening, CI/CD, deploy configs, load test (zero dupes to 5,000 concurrent jobs) | ✅ |
 
-**131 tests, all passing.** `uv run pytest tests/ -v`. See [`NEXT.md`](NEXT.md) for exactly
+**Frontend is wired end-to-end to live data** — auth, compose → AI preflight → launch,
+campaigns, contacts, mailing lists (with a paste/CSV/Excel import wizard), templates (full
+CRUD, versioned, with starter templates seeded per org), the dead-letter job inspector,
+notifications, and analytics all call the real backend when `NEXT_PUBLIC_API_URL` is set —
+see [`apps/web/README.md`](apps/web/README.md) for exactly what's live versus deliberately
+still demo-only (the kill-worker simulation, chaos mode).
+
+**200+ tests, all passing.** `uv run pytest tests/ -v`. See [`NEXT.md`](NEXT.md) for exactly
 what's verified versus what still needs a real Postgres instance to prove (this dev
 environment has no Docker/Postgres — see that file for the honest boundary).
 
@@ -98,7 +109,7 @@ cp .env.example .env          # fake providers work out of the box, no keys need
 
 uv venv && uv pip install -e ".[dev]"
 uv run alembic upgrade head
-uv run pytest tests/ -v        # 131 tests
+uv run pytest tests/ -v        # 200+ tests
 
 uv run uvicorn services.api.main:app --reload --port 8000
 # in another terminal:

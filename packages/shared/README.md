@@ -33,6 +33,9 @@ either. Transition logic is defined exactly once.
 | [`preflight.py`](preflight.py) | AI preflight: a heuristic, explainable spam-risk score (every signal named, nothing "the model felt like 42"), a per-recipient missing-variable audit over *every* recipient (not a sample), link validation. Pure function — no DB, no network. |
 | [`attachments.py`](attachments.py) | R2 presign validation: 10MB cap, extension allowlist, and a content-type/extension mismatch check (the classic disguised-file attack). `FakeR2Client` for dev. |
 | [`enqueue.py`](enqueue.py) / [`job_store.py`](job_store.py) | The SQLAlchemy execution layer over `packages/durable/queue.py`'s SQL-only primitives — see that package's README for why they're kept separate. |
+| [`starter_templates.py`](starter_templates.py) | 2-3 ready-to-send `EmailTemplate` + `TemplateVersion` seed rows, valid under `render.py`'s sandboxed/declared-variable rules, inserted for every newly created org so a workspace never starts empty. |
+| [`rate_limit.py`](rate_limit.py) | Redis Lua-scripted atomic token bucket, in-memory fallback when `REDIS_URL` is unset. Consumed by `services/api/rate_limit_middleware.py`. |
+| [`agents/`](agents/) | QA Agent and Analytics Agent on top of the LLM provider layer — see below. |
 | [`providers/`](providers/) | Email and LLM provider interfaces — see below. |
 
 ## The provider pattern
@@ -52,10 +55,17 @@ that reproduces the orphan-event race on demand.
 `OpenAIProvider`, and `OpenRouterProvider` (one API key routes to 100+ models — Claude,
 GPT, Llama, Mistral, Gemini — through an OpenAI-compatible endpoint, useful here
 specifically because it lets `LLM_PROVIDER=openrouter` try different underlying models
-without juggling per-vendor keys). Not yet called from anywhere — this is the provider
-layer Phase 7's agents will sit on top of. See `providers/llm_http.py` for the one real
-shape difference between vendors: Anthropic's Messages API takes `system` as a top-level
-field, not a role in the messages array.
+without juggling per-vendor keys). See `providers/llm_http.py` for the one real shape
+difference between vendors: Anthropic's Messages API takes `system` as a top-level field,
+not a role in the messages array.
+
+**Agents** ([`agents/`](agents/)) — QA Agent (reviews a template version, proposes fixes)
+and Analytics Agent (summarizes a completed campaign) sit on top of the LLM provider layer
+above. Both follow CLAUDE.md invariant 8 exactly: structured tool-call output only, every
+proposal lands in `audit.py`'s trail, and neither ever executes a DB write itself — a human
+approves via `services/api/routers/agents.py`'s endpoints. `extension_points.py` documents
+Campaign Planner/Content/Recipient agents as the same pattern, worked-example-only (not
+implemented) — see its module docstring for why that scope was the right call.
 
 ## Testing
 

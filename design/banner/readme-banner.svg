@@ -1,0 +1,61 @@
+<svg width="1200" height="260" viewBox="0 0 1200 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sendrun — durable, AI-assisted email campaign platform">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1C1815"/>
+      <stop offset="100%" stop-color="#14110F"/>
+    </linearGradient>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <path d="M 28 0 L 0 0 0 28" fill="none" stroke="#F5F1E8" stroke-opacity="0.035" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="260" fill="url(#bg)"/>
+  <rect width="1200" height="260" fill="url(#grid)"/>
+
+  <!-- job chain motif: independent, idempotent jobs converging to sent -->
+  <g transform="translate(70,175)" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10" letter-spacing="1">
+    <g>
+      <circle cx="0" cy="0" r="4.5" fill="#7FB069"/>
+      <line x1="6" y1="0" x2="46" y2="0" stroke="#3A342E" stroke-width="2"/>
+      <circle cx="52" cy="0" r="4.5" fill="#7FB069"/>
+      <text x="0" y="20" fill="#8A8178">job_2381</text>
+    </g>
+    <g transform="translate(160,0)">
+      <circle cx="0" cy="0" r="4.5" fill="#D9A441"/>
+      <line x1="6" y1="0" x2="46" y2="0" stroke="#3A342E" stroke-width="2" stroke-dasharray="3 3"/>
+      <circle cx="52" cy="0" r="4.5" fill="#3A342E" stroke="#E4491F" stroke-width="1.5"/>
+      <text x="0" y="20" fill="#8A8178">job_2382 · retry</text>
+    </g>
+    <g transform="translate(320,0)">
+      <circle cx="0" cy="0" r="4.5" fill="#7FB069"/>
+      <line x1="6" y1="0" x2="46" y2="0" stroke="#3A342E" stroke-width="2"/>
+      <circle cx="52" cy="0" r="4.5" fill="#7FB069"/>
+      <text x="0" y="20" fill="#8A8178">job_2383</text>
+    </g>
+  </g>
+
+  <!-- wordmark -->
+  <g transform="translate(70,88)">
+    <rect x="0" y="-34" width="10" height="44" fill="#E4491F"/>
+    <text x="26" y="0" font-family="'Space Grotesk', 'Segoe UI', system-ui, sans-serif" font-size="56" font-weight="700" letter-spacing="-2" fill="#F5F1E8">Sendrun</text>
+  </g>
+
+  <!-- tagline -->
+  <text x="70" y="122" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="13" letter-spacing="0.5" fill="#B8AFA4">
+    DURABLE, AI-ASSISTED EMAIL CAMPAIGN PLATFORM
+  </text>
+
+  <!-- right-side status pill -->
+  <g transform="translate(870,50)">
+    <rect x="0" y="0" width="260" height="30" rx="15" fill="none" stroke="#E4491F" stroke-opacity="0.5"/>
+    <circle cx="18" cy="15" r="4" fill="#E4491F"/>
+    <text x="32" y="19" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11" font-weight="600" letter-spacing="1" fill="#E4491F">ZERO DUPLICATE SENDS</text>
+  </g>
+  <g transform="translate(870,90)">
+    <rect x="0" y="0" width="260" height="30" rx="15" fill="none" stroke="#7FB069" stroke-opacity="0.5"/>
+    <circle cx="18" cy="15" r="4" fill="#7FB069"/>
+    <text x="32" y="19" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11" font-weight="600" letter-spacing="1" fill="#7FB069">KILL-WORKER PROVEN</text>
+  </g>
+
+  <line x1="70" y1="150" x2="1130" y2="150" stroke="#3A342E" stroke-width="1"/>
+</svg>
