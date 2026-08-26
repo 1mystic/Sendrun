@@ -1,19 +1,24 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import Shell from "@/components/Shell";
 import { SectionLabel } from "@/components/ui";
 import { CONTACTS, DEFAULT_TEMPLATE, RECIPIENT_GROUPS, renderTemplate } from "@/lib/mock";
+import { createTemplate, getCurrentOrgId, setCampaignDraft, useMocks } from "@/lib/api";
 import Stepper from "../Stepper";
 
 export default function ComposePage() {
+  const router = useRouter();
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(
     () => new Set(["speaker"]),
   );
   const [subject, setSubject] = useState(DEFAULT_TEMPLATE.subject);
   const [body, setBody] = useState(DEFAULT_TEMPLATE.body);
   const [whoId, setWhoId] = useState(CONTACTS[0].id);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const recipientCount = useMemo(
     () =>
@@ -27,6 +32,40 @@ export default function ComposePage() {
   const who = CONTACTS.find((c) => c.id === whoId) ?? CONTACTS[0];
   const renderedSubject = renderTemplate(subject, who);
   const renderedBody = renderTemplate(body, who);
+
+  async function handleRunPreflight() {
+    if (useMocks) {
+      router.push("/app/campaigns/new/preflight");
+      return;
+    }
+    const orgId = getCurrentOrgId();
+    if (!orgId) {
+      setError("No organization selected — sign in again.");
+      return;
+    }
+    setError(null);
+    setSubmitting(true);
+    try {
+      const variableMatches = [...subject.matchAll(/\{\{(\w+)\}\}/g), ...body.matchAll(/\{\{(\w+)\}\}/g)];
+      const variables = [...new Set(variableMatches.map((m) => m[1]))];
+      const template = await createTemplate(orgId, {
+        name: "Untitled campaign",
+        subject,
+        html_body: body,
+        variables,
+      });
+      setCampaignDraft({
+        name: "Untitled campaign",
+        templateId: template.id,
+        recipients: { tags: [...selectedGroups], exclude_suppressed: true },
+      });
+      router.push("/app/campaigns/new/preflight");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save template");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   function toggleGroup(id: string) {
     setSelectedGroups((prev) => {
@@ -239,10 +278,19 @@ export default function ComposePage() {
       </div>
 
       <div className="h-6" />
+      {error && (
+        <p style={{ color: "var(--color-crit)", fontSize: ".82rem", marginBottom: 12 }}>{error}</p>
+      )}
       <div className="flex flex-wrap items-center gap-[9px]">
-        <Link href="/app/campaigns/new/preflight" className="btn no-underline">
-          Run preflight →
-        </Link>
+        {useMocks ? (
+          <Link href="/app/campaigns/new/preflight" className="btn no-underline">
+            Run preflight →
+          </Link>
+        ) : (
+          <button type="button" className="btn" disabled={submitting} onClick={handleRunPreflight}>
+            {submitting ? "Saving…" : "Run preflight →"}
+          </button>
+        )}
         <button type="button" className="btn btn-ghost">
           Save draft
         </button>

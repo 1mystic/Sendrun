@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
+import { signIn, listMyOrganizations, setCurrentOrgId } from "@/lib/api";
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 48 48" aria-hidden="true">
@@ -15,10 +16,27 @@ const GoogleIcon = () => (
 
 export default function SignInPage() {
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    router.push("/app");
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    const email = String(form.get("email") ?? "");
+    const password = String(form.get("password") ?? "");
+
+    setSubmitting(true);
+    try {
+      await signIn(email, password);
+      const orgs = await listMyOrganizations();
+      if (orgs[0]) setCurrentOrgId(orgs[0].id);
+      router.push("/app");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign in failed");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -68,8 +86,19 @@ export default function SignInPage() {
           </Link>
         </div>
 
-        <button className="btn" style={{ width: "100%", textAlign: "center", display: "block" }} type="submit">
-          Sign in
+        {error && (
+          <p className="a-footline" style={{ color: "var(--crit, #E4491F)", marginBottom: 12 }}>
+            {error}
+          </p>
+        )}
+
+        <button
+          className="btn"
+          style={{ width: "100%", textAlign: "center", display: "block" }}
+          type="submit"
+          disabled={submitting}
+        >
+          {submitting ? "Signing in…" : "Sign in"}
         </button>
 
         <div className="a-divider">Or</div>

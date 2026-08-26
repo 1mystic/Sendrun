@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { createOrganization, setCurrentOrgId } from "@/lib/api";
 
 function deriveSlug(name: string): string {
   return name
@@ -17,15 +18,27 @@ export default function CreateOrgPage() {
   const router = useRouter();
   const [orgName, setOrgName] = useState("");
   const [slug, setSlug] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   function handleNameChange(value: string) {
     setOrgName(value);
     setSlug(deriveSlug(value));
   }
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    router.push("/invite");
+    setError(null);
+    setSubmitting(true);
+    try {
+      const org = await createOrganization(orgName.trim());
+      setCurrentOrgId(org.id);
+      router.push("/invite");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create organization");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -100,8 +113,19 @@ export default function CreateOrgPage() {
           <option value="other">Something else</option>
         </select>
 
-        <button className="btn" style={{ width: "100%", textAlign: "center", display: "block" }} type="submit">
-          Create organization
+        {error && (
+          <p className="a-footline" style={{ color: "var(--crit, #E4491F)", marginBottom: 12 }}>
+            {error}
+          </p>
+        )}
+
+        <button
+          className="btn"
+          style={{ width: "100%", textAlign: "center", display: "block" }}
+          type="submit"
+          disabled={submitting}
+        >
+          {submitting ? "Creating…" : "Create organization"}
         </button>
       </form>
     </section>

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import Shell from "@/components/Shell";
 import { SectionLabel } from "@/components/ui";
 import { NAMES } from "@/lib/mock";
+import { getCampaignLive, getCurrentOrgId, getProgress, useMocks, type CampaignOut, type ProgressOut } from "@/lib/api";
 
 const TOTAL = 122;
 const MAX_FEED_ROWS = 60;
@@ -69,10 +70,137 @@ function randomName() {
   return NAMES[Math.floor(Math.random() * NAMES.length)] + "@…";
 }
 
-export default function LiveCampaignPage() {
-  const params = useParams<{ id: string }>();
-  const campaignId = params.id;
+function LiveCampaignView({ campaignId }: { campaignId: string }) {
+  const [campaign, setCampaign] = useState<CampaignOut | null>(null);
+  const [progress, setProgress] = useState<ProgressOut | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | undefined;
+
+    async function start() {
+      const resolvedOrgId = getCurrentOrgId();
+      if (!resolvedOrgId) {
+        if (!cancelled) setError("No organization selected — sign in again.");
+        return;
+      }
+      const orgId: string = resolvedOrgId;
+
+      getCampaignLive(orgId, campaignId)
+        .then((c) => !cancelled && setCampaign(c))
+        .catch((err) => !cancelled && setError(err instanceof Error ? err.message : "Failed to load campaign"));
+
+      async function poll() {
+        try {
+          const p = await getProgress(orgId, campaignId);
+          if (!cancelled) setProgress(p);
+        } catch (err) {
+          if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load progress");
+        }
+      }
+      await poll();
+      if (!cancelled) interval = setInterval(poll, 2000);
+    }
+
+    start();
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+    };
+  }, [campaignId]);
+
+  if (error) {
+    return (
+      <Shell crumb="Live execution">
+        <p style={{ color: "var(--color-crit)" }}>{error}</p>
+      </Shell>
+    );
+  }
+
+  if (!campaign || !progress) {
+    return (
+      <Shell crumb="Live execution">
+        <p className="text-muted">Loading campaign…</p>
+      </Shell>
+    );
+  }
+
+  const pct = (v: number) => (progress.total > 0 ? (v / progress.total) * 100 : 0);
+  const isComplete = progress.status === "completed" || progress.status === "cancelled";
+
+  return (
+    <Shell crumb="Live execution">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="m-0 mb-1.5 text-[clamp(1.5rem,3vw,2.1rem)] font-bold leading-[1.02] tracking-[-.035em] text-balance">
+            {campaign.name}
+          </h1>
+          <p className="m-0" style={{ fontFamily: "var(--font-mono)", fontSize: ".74rem", color: "var(--muted)" }}>
+            {campaignId}
+          </p>
+        </div>
+        <span className={isComplete ? "pill pill-ok" : "pill pill-run"}>
+          <span
+            className="inline-block h-[5px] w-[5px] rounded-full bg-current"
+            style={!isComplete ? { animation: "blink 1.6s cubic-bezier(.16,1,.3,1) infinite" } : undefined}
+          />
+          {progress.status}
+        </span>
+      </div>
+
+      <div className="card mb-[18px]">
+        <div className="mb-3 flex items-center justify-between">
+          <span className="num" style={{ fontSize: "1.9rem", fontWeight: 700, letterSpacing: "-.04em" }}>
+            {progress.attempted.toLocaleString()}
+          </span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: ".74rem", color: "var(--muted)" }}>
+            of <b className="num" style={{ color: "var(--color-paper)" }}>{progress.total}</b> attempted
+          </span>
+        </div>
+        <div className="flex overflow-hidden" style={{ height: 9, background: "var(--line)" }}>
+          <span style={{ display: "block", height: "100%", width: `${pct(progress.delivered)}%`, background: "var(--color-ok)", transition: "width .5s cubic-bezier(.16,1,.3,1)" }} />
+          <span style={{ display: "block", height: "100%", width: `${pct(progress.sending)}%`, background: "var(--color-accent)", transition: "width .5s cubic-bezier(.16,1,.3,1)" }} />
+          <span style={{ display: "block", height: "100%", width: `${pct(progress.retrying)}%`, background: "var(--color-warn)", transition: "width .5s cubic-bezier(.16,1,.3,1)" }} />
+          <span style={{ display: "block", height: "100%", width: `${pct(progress.failed_permanent)}%`, background: "rgba(228,73,31,.42)", transition: "width .5s cubic-bezier(.16,1,.3,1)" }} />
+        </div>
+      </div>
+
+      <div className="mb-[18px] grid grid-cols-2 gap-[clamp(12px,1.1vw,18px)] lg:grid-cols-4">
+        <div className="card flex flex-col justify-center gap-2" style={{ borderLeft: "3px solid var(--color-ok)" }}>
+          <span className="num text-[clamp(1.55rem,2.1vw,2.15rem)] font-bold leading-[1.04] tracking-[-.035em]">{progress.delivered.toLocaleString()}</span>
+          <span className="text-muted uppercase" style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", fontWeight: 500, letterSpacing: ".12em" }}>Delivered</span>
+        </div>
+        <div className="card flex flex-col justify-center gap-2" style={{ borderLeft: "3px solid var(--color-accent)" }}>
+          <span className="num text-[clamp(1.55rem,2.1vw,2.15rem)] font-bold leading-[1.04] tracking-[-.035em]">{progress.sending}</span>
+          <span className="text-muted uppercase" style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", fontWeight: 500, letterSpacing: ".12em" }}>Sending</span>
+        </div>
+        <div className="card flex flex-col justify-center gap-2" style={{ borderLeft: "3px solid var(--color-warn)" }}>
+          <span className="num text-[clamp(1.55rem,2.1vw,2.15rem)] font-bold leading-[1.04] tracking-[-.035em]">{progress.retrying}</span>
+          <span className="text-muted uppercase" style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", fontWeight: 500, letterSpacing: ".12em" }}>Retrying</span>
+        </div>
+        <div className="card flex flex-col justify-center gap-2" style={{ borderLeft: "3px solid var(--line-2)" }}>
+          <span className="num text-[clamp(1.55rem,2.1vw,2.15rem)] font-bold leading-[1.04] tracking-[-.035em]">{progress.failed_permanent}</span>
+          <span className="text-muted uppercase" style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", fontWeight: 500, letterSpacing: ".12em" }}>Failed</span>
+        </div>
+      </div>
+
+      <div className="card">
+        <SectionLabel>Delivery</SectionLabel>
+        <div className="flex flex-col gap-2" style={{ fontFamily: "var(--font-mono)", fontSize: ".76rem", color: "var(--muted)" }}>
+          <div className="flex items-center justify-between"><span>Bounced</span><span className="num">{progress.bounced}</span></div>
+          <div className="flex items-center justify-between"><span>Complained</span><span className="num">{progress.complained}</span></div>
+        </div>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", color: "var(--faint)", marginTop: 10 }}>
+          &ldquo;Attempted&rdquo; means the send was made, not that delivery has settled — webhooks keep
+          arriving for hours after a campaign completes.
+        </p>
+      </div>
+    </Shell>
+  );
+}
+
+function DemoCampaignView({ campaignId }: { campaignId: string }) {
   const [state, setState] = useState<SimState>(() => freshState());
   const [feedRows, setFeedRows] = useState<FeedRow[]>([]);
   const [killBanner, setKillBanner] = useState<{ detail: string } | null>(null);
@@ -527,4 +655,11 @@ export default function LiveCampaignPage() {
       )}
     </Shell>
   );
+}
+
+export default function CampaignDetailPage() {
+  const params = useParams<{ id: string }>();
+  const campaignId = params.id;
+
+  return useMocks ? <DemoCampaignView campaignId={campaignId} /> : <LiveCampaignView campaignId={campaignId} />;
 }

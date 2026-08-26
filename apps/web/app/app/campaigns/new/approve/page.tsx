@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Shell from "@/components/Shell";
 import { SectionLabel } from "@/components/ui";
+import { createCampaign, launchCampaign, getCampaignDraft, getCurrentOrgId, useMocks } from "@/lib/api";
 import Stepper from "../../Stepper";
 
 const GUARANTEES = [
@@ -17,12 +18,32 @@ const GUARANTEES = [
 export default function ApprovePage() {
   const router = useRouter();
   const [launching, setLaunching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleLaunch() {
+  async function handleLaunch() {
+    if (useMocks) {
+      setLaunching(true);
+      setTimeout(() => router.push("/app/campaigns/campaign_8231"), 550);
+      return;
+    }
+
+    const draft = getCampaignDraft();
+    const orgId = getCurrentOrgId();
+    if (!draft || !orgId) {
+      setError("No campaign draft found — go back and compose your message first.");
+      return;
+    }
+
+    setError(null);
     setLaunching(true);
-    setTimeout(() => {
-      router.push("/app/campaigns/campaign_8231");
-    }, 550);
+    try {
+      const created = await createCampaign(orgId, { name: draft.name, template_id: draft.templateId, recipients: draft.recipients });
+      const launched = await launchCampaign(orgId, created.id, { name: draft.name, template_id: draft.templateId, recipients: draft.recipients });
+      router.push(`/app/campaigns/${launched.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Launch failed");
+      setLaunching(false);
+    }
   }
 
   return (
@@ -118,6 +139,9 @@ export default function ApprovePage() {
       </div>
 
       <div className="h-6" />
+      {error && (
+        <p style={{ color: "var(--color-crit)", fontSize: ".82rem", marginBottom: 12 }}>{error}</p>
+      )}
       <div className="flex flex-wrap items-center gap-[9px]">
         <button type="button" className="btn" disabled={launching} onClick={handleLaunch}>
           {launching ? "Launching…" : "Launch 122 jobs"}

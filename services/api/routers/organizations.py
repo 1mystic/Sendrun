@@ -15,7 +15,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from packages.shared.audit import record
 from packages.shared.authz import Role, get_membership, org_for_slug, require_capability
-from packages.shared.models import Organization, OrganizationMember, User
+from packages.shared.models import (
+    AuditLog,
+    EmailTemplate,
+    Organization,
+    OrganizationMember,
+    TemplateVersion,
+    User,
+)
+from packages.shared.starter_templates import STARTER_TEMPLATES
 
 from ..deps import get_db, require_membership, require_user
 from .auth import slugify
@@ -46,6 +54,36 @@ class InviteRequest(BaseModel):
     role: str = "editor"
 
 
+class UpdateOrgRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+
+
+class AuditLogOut(BaseModel):
+    id: str
+    actor_user_id: str | None
+    actor_kind: str
+    action: str
+    target_type: str | None
+    target_id: str | None
+    metadata: dict
+    created_at: str
+
+
+async def _seed_starter_templates(db: AsyncSession, org_id: UUID) -> None:
+    """Every new org gets a small set of ready-to-send templates rather than
+    an empty list — real EmailTemplate + TemplateVersion rows, valid under
+    render.validate_template's declared-variable rules."""
+    for starter in STARTER_TEMPLATES:
+        template = EmailTemplate(org_id=org_id, name=starter.name, current_version=1)
+        db.add(template)
+        await db.flush()
+        db.add(TemplateVersion(
+            template_id=template.id, version=1, subject=starter.subject,
+            html_body=starter.html_body, text_body=starter.text_body,
+            variables=starter.variables,
+        ))
+
+
 async def _unique_slug(db: AsyncSession, base: str) -> str:
     slug = slugify(base)
     candidate = slug
@@ -68,6 +106,7 @@ async def create_organization(
     await db.flush()
 
     db.add(OrganizationMember(org_id=org.id, user_id=user.id, role=Role.OWNER.name.lower()))
+    await _seed_starter_templates(db, org.id)
     await record(db, org_id=org.id, actor_user_id=user.id, action="organization.created",
                  target_type="organization", target_id=str(org.id))
     await db.commit()
@@ -133,3 +172,52 @@ async def invite_member(
     )
     await db.commit()
     return {"status": "invited", "email": body.email, "role": body.role}
+
+
+@router.patch("/{org_id}", response_model=OrgOut)
+async def update_organization(
+    org_id: UUID,
+    body: UpdateOrgRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_user),
+) -> OrgOut:
+    membership = require_capability(await get_membership(db, user, org_id), "manage_settings")
+
+    org = await db.get(Organization, org_id)
+    if org is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "organization not found")
+
+    org.name = body.name.strip()
+    await record(db, org_id=org_id, actor_user_id=user.id, action="organization.updated",
+                 target_type="organization", target_id=str(org_id))
+    await db.commit()
+    return OrgOut(id=str(org.id), name=org.name, slug=org.slug, role=membership.role.name.lower())
+
+
+@router.get("/{org_id}/audit-log", response_model=list[AuditLogOut])
+async def list_audit_log(
+    org_id: UUID,
+    limit: int = 50,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db),
+    membership=Depends(require_membership),
+) -> list[AuditLogOut]:
+    """The notification feed's data source — AuditLog is already an
+    append-only, actor-attributed, org-scoped event trail (CLAUDE.md
+    invariant 8), so notifications are a read over it rather than a new
+    model."""
+    result = await db.execute(
+        select(AuditLog)
+        .where(AuditLog.org_id == org_id)
+        .order_by(AuditLog.created_at.desc())
+        .limit(min(limit, 200))
+        .offset(offset)
+    )
+    return [
+        AuditLogOut(
+            id=str(a.id), actor_user_id=str(a.actor_user_id) if a.actor_user_id else None,
+            actor_kind=a.actor_kind, action=a.action, target_type=a.target_type,
+            target_id=a.target_id, metadata=a.metadata_, created_at=a.created_at.isoformat(),
+        )
+        for a in result.scalars().all()
+    ]

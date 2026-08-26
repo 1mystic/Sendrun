@@ -1,8 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import Shell from "@/components/Shell";
 import { SectionLabel } from "@/components/ui";
 import { PREFLIGHT } from "@/lib/mock";
 import type { PreflightCheck } from "@/lib/types";
+import { getCampaignDraft, getCurrentOrgId, runPreflight, useMocks, type CheckOut } from "@/lib/api";
 import Stepper from "../../Stepper";
 
 const SEVERITY_ICON: Record<PreflightCheck["severity"], { icon: string; color: string }> = {
@@ -11,7 +15,75 @@ const SEVERITY_ICON: Record<PreflightCheck["severity"], { icon: string; color: s
   crit: { icon: "✕", color: "var(--color-crit)" },
 };
 
+interface LiveReport {
+  spamRisk: number;
+  personalizationScore: number;
+  predictedDelivery: number;
+  checks: CheckOut[];
+  recipientCount: number;
+}
+
 export default function PreflightPage() {
+  const [live, setLive] = useState<LiveReport | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(!useMocks);
+
+  useEffect(() => {
+    if (useMocks) return;
+
+    async function load() {
+      const draft = getCampaignDraft();
+      const orgId = getCurrentOrgId();
+      if (!draft || !orgId) {
+        setError("No campaign draft found — go back and compose your message first.");
+        setLoading(false);
+        return;
+      }
+      try {
+        const r = await runPreflight(orgId, draft.templateId, draft.recipients);
+        setLive({
+          spamRisk: r.spam_risk,
+          personalizationScore: r.personalization_score,
+          predictedDelivery: r.predicted_delivery,
+          checks: r.checks,
+          recipientCount: r.recipient_count,
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Preflight failed");
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  const report = live ?? {
+    spamRisk: PREFLIGHT.spamRisk,
+    personalizationScore: PREFLIGHT.personalizationScore,
+    predictedDelivery: PREFLIGHT.predictedDelivery,
+    checks: PREFLIGHT.checks as CheckOut[],
+    recipientCount: 127,
+  };
+
+  if (!useMocks && loading) {
+    return (
+      <Shell crumb="Preflight">
+        <p className="text-muted">Running preflight checks…</p>
+      </Shell>
+    );
+  }
+
+  if (!useMocks && error) {
+    return (
+      <Shell crumb="Preflight">
+        <p style={{ color: "var(--color-crit)" }}>{error}</p>
+        <Link href="/app/campaigns/new" className="btn btn-ghost no-underline">
+          ← Back to compose
+        </Link>
+      </Shell>
+    );
+  }
+
   return (
     <Shell crumb="Preflight">
       <h1 className="m-0 mb-1.5 text-[clamp(1.5rem,3vw,2.1rem)] font-bold leading-[1.02] tracking-[-.035em] text-balance">
@@ -37,7 +109,7 @@ export default function PreflightPage() {
               }}
               className="num"
             >
-              {PREFLIGHT.spamRisk}
+              {report.spamRisk}
             </span>
             <span style={{ fontFamily: "var(--font-mono)", fontSize: ".68rem", color: "var(--muted)" }}>
               / 100 · low
@@ -64,7 +136,7 @@ export default function PreflightPage() {
               }}
               className="num"
             >
-              {PREFLIGHT.personalizationScore}
+              {report.personalizationScore}
             </span>
             <span style={{ fontFamily: "var(--font-mono)", fontSize: ".68rem", color: "var(--muted)" }}>
               / 100
@@ -90,7 +162,7 @@ export default function PreflightPage() {
               }}
               className="num"
             >
-              {PREFLIGHT.predictedDelivery}
+              {report.predictedDelivery}
               <span style={{ fontSize: ".5em" }}>%</span>
             </span>
           </div>
@@ -104,7 +176,7 @@ export default function PreflightPage() {
 
       <div className="card">
         <SectionLabel>Checks</SectionLabel>
-        {PREFLIGHT.checks.map((check, i) => {
+        {report.checks.map((check, i) => {
           const sev = SEVERITY_ICON[check.severity];
           return (
             <div
@@ -113,7 +185,7 @@ export default function PreflightPage() {
               style={{
                 gridTemplateColumns: "18px 1fr auto",
                 padding: "13px 0",
-                borderBottom: i === PREFLIGHT.checks.length - 1 ? "none" : "1px solid var(--line)",
+                borderBottom: i === report.checks.length - 1 ? "none" : "1px solid var(--line)",
               }}
             >
               <span style={{ fontSize: ".9rem", lineHeight: 1.4, color: sev.color }}>{sev.icon}</span>

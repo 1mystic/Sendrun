@@ -46,6 +46,30 @@ export const RECIPIENT_GROUPS = [
   { id: "participant", label: "Tag: participant", count: 1204 },
 ];
 
+/** Mailing lists (real Group entities) — distinct from the tag-based
+ * RECIPIENT_GROUPS above, which the compose page's recipient picker uses. */
+export const MOCK_GROUPS = [
+  { id: "mock-list-1", name: "Hackathon speakers", contact_count: 3 },
+  { id: "mock-list-2", name: "Alumni network", contact_count: 2 },
+  { id: "mock-list-3", name: "Sponsors 2026", contact_count: 0 },
+];
+
+export const MOCK_GROUP_CONTACTS: Record<
+  string,
+  Array<{ id: string; email: string; name: string | null; fields: Record<string, string>; tags: string[]; suppressed: boolean }>
+> = {
+  "mock-list-1": [
+    { id: "c1", email: "rahul@example.com", name: "Rahul Menon", fields: {}, tags: ["speaker", "AI"], suppressed: false },
+    { id: "c3", email: "arjun@example.com", name: "Arjun Desai", fields: {}, tags: ["speaker"], suppressed: false },
+    { id: "c5", email: "neha@example.com", name: "Neha Kulkarni", fields: {}, tags: ["alumni", "ML"], suppressed: false },
+  ],
+  "mock-list-2": [
+    { id: "c2", email: "ananya@example.com", name: "Ananya Iyer", fields: {}, tags: ["alumni"], suppressed: false },
+    { id: "c5", email: "neha@example.com", name: "Neha Kulkarni", fields: {}, tags: ["alumni", "ML"], suppressed: false },
+  ],
+  "mock-list-3": [],
+};
+
 export const DEFAULT_TEMPLATE = {
   subject: "Speak at AI Hackathon 2026, {{first_name}}?",
   body: `Hi {{first_name}},

@@ -19,7 +19,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from packages.shared.audit import record
 from packages.shared.authz import require_capability
 from packages.shared.enqueue import enqueue_task
-from packages.shared.models import Campaign, Contact, ContactTag, EmailJob, EmailTemplate, Tag, User
+from packages.shared.models import (
+    Campaign,
+    Contact,
+    ContactGroup,
+    ContactTag,
+    EmailJob,
+    EmailTemplate,
+    Tag,
+    User,
+)
 from packages.shared.render import TemplateValidationError, render_for_contact
 from packages.shared.transitions import CampaignStatus, SendStatus
 
@@ -74,6 +83,10 @@ async def _resolve_contact_ids(db: AsyncSession, org_id: UUID, filt: SmartFilter
         stmt = stmt.join(ContactTag, ContactTag.contact_id == Contact.id).join(
             Tag, and_(Tag.id == ContactTag.tag_id, Tag.name.in_(filt.tags))
         )
+    if filt.group_id:
+        stmt = stmt.join(ContactGroup, and_(
+            ContactGroup.contact_id == Contact.id, ContactGroup.group_id == filt.group_id
+        ))
     if filt.exclude_suppressed:
         stmt = stmt.where(Contact.suppressed.is_(False))
     if filt.search:
@@ -117,6 +130,38 @@ async def create_campaign(
         template_id=str(template.id), template_version=campaign.template_version,
         recipient_count=len(recipient_ids),
     )
+
+
+@router.get("", response_model=list[CampaignOut])
+async def list_campaigns(
+    org_id: UUID,
+    db: AsyncSession = Depends(get_db), user: User = Depends(require_user),
+) -> list[CampaignOut]:
+    await require_membership(org_id, db, user)
+
+    campaigns = (
+        await db.execute(
+            select(Campaign).where(Campaign.org_id == org_id).order_by(Campaign.created_at.desc())
+        )
+    ).scalars().all()
+    if not campaigns:
+        return []
+
+    count_rows = (
+        await db.execute(
+            select(EmailJob.campaign_id, func.count())
+            .where(EmailJob.campaign_id.in_([c.id for c in campaigns]))
+            .group_by(EmailJob.campaign_id)
+        )
+    ).all()
+    counts: dict[UUID, int] = {campaign_id: n for campaign_id, n in count_rows}
+    return [
+        CampaignOut(
+            id=str(c.id), name=c.name, status=c.status, template_id=str(c.template_id),
+            template_version=c.template_version, recipient_count=counts.get(c.id, 0),
+        )
+        for c in campaigns
+    ]
 
 
 @router.get("/{campaign_id}", response_model=CampaignOut)

@@ -14,9 +14,12 @@ from packages.shared.config import get_settings
 from .rate_limit_middleware import RateLimitMiddleware
 from .routers import (
     agents,
+    analytics,
     auth,
     campaigns,
     contacts,
+    groups,
+    jobs,
     organizations,
     preflight,
     progress,
@@ -48,12 +51,15 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(organizations.router)
 app.include_router(contacts.router)
+app.include_router(groups.router)
 app.include_router(templates.router)
 app.include_router(campaigns.router)
 app.include_router(preflight.router)
 app.include_router(progress.router)
 app.include_router(webhooks_ingest.router)
 app.include_router(agents.router)
+app.include_router(analytics.router)
+app.include_router(jobs.router)
 
 
 @app.get("/api/health")

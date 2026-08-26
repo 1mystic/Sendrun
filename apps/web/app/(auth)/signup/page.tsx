@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import StrengthMeter from "../StrengthMeter";
+import { signUp } from "@/lib/api";
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 48 48" aria-hidden="true">
@@ -17,10 +18,25 @@ const GoogleIcon = () => (
 export default function SignUpPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    router.push("/create-org");
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    const name = String(form.get("name") ?? "");
+    const email = String(form.get("email") ?? "");
+
+    setSubmitting(true);
+    try {
+      await signUp(name, email, password);
+      router.push("/create-org");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign up failed");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -90,8 +106,19 @@ export default function SignUpPage() {
           </a>
         </label>
 
-        <button className="btn" style={{ width: "100%", textAlign: "center", display: "block" }} type="submit">
-          Create account
+        {error && (
+          <p className="a-footline" style={{ color: "var(--crit, #E4491F)", marginBottom: 12 }}>
+            {error}
+          </p>
+        )}
+
+        <button
+          className="btn"
+          style={{ width: "100%", textAlign: "center", display: "block" }}
+          type="submit"
+          disabled={submitting}
+        >
+          {submitting ? "Creating account…" : "Create account"}
         </button>
 
         <div className="a-divider">Or</div>

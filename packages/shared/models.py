@@ -178,6 +178,7 @@ class Group(Base, TimestampMixin):
     a contact; a group is an explicit roster someone curated."""
 
     __tablename__ = "groups"
+    __table_args__ = (UniqueConstraint("org_id", "name", name="uq_group_org_name"),)
 
     id: Mapped[uuid.UUID] = mapped_column(GUID(), primary_key=True, default=_uuid)
     org_id: Mapped[uuid.UUID] = mapped_column(GUID(), ForeignKey("organizations.id"), index=True)
@@ -259,6 +260,11 @@ class EmailTemplate(Base, TimestampMixin):
     org_id: Mapped[uuid.UUID] = mapped_column(GUID(), ForeignKey("organizations.id"), index=True)
     name: Mapped[str] = mapped_column(String(200))
     current_version: Mapped[int] = mapped_column(Integer, default=1)
+    # Soft-delete only — a campaign pins template_id + template_version, so a
+    # hard DELETE would orphan the history of any campaign that used this
+    # template. Archived templates stay resolvable by id+version; they are
+    # just excluded from the default list.
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
 
 class TemplateVersion(Base, TimestampMixin):

@@ -51,6 +51,7 @@ class TemplateOut(BaseModel):
     id: str
     name: str
     current_version: int
+    archived: bool
     latest: TemplateVersionOut
 
 
@@ -71,6 +72,7 @@ def _to_out(template: EmailTemplate, version: TemplateVersion) -> TemplateOut:
         id=str(template.id),
         name=template.name,
         current_version=template.current_version,
+        archived=template.archived,
         latest=TemplateVersionOut(
             version=version.version, subject=version.subject, html_body=version.html_body,
             text_body=version.text_body, variables=version.variables,
@@ -112,20 +114,39 @@ async def create_template(
 @router.get("", response_model=list[TemplateOut])
 async def list_templates(
     org_id: UUID,
+    include_archived: bool = False,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_user),
 ) -> list[TemplateOut]:
     await require_membership(org_id, db, user)
 
-    templates = (
-        await db.execute(select(EmailTemplate).where(EmailTemplate.org_id == org_id))
-    ).scalars().all()
+    stmt = select(EmailTemplate).where(EmailTemplate.org_id == org_id)
+    if not include_archived:
+        stmt = stmt.where(EmailTemplate.archived.is_(False))
+    templates = (await db.execute(stmt)).scalars().all()
 
     out: list[TemplateOut] = []
     for t in templates:
         version = await _latest_version(db, t.id, t.current_version)
         out.append(_to_out(t, version))
     return out
+
+
+@router.get("/{template_id}", response_model=TemplateOut)
+async def get_template(
+    org_id: UUID,
+    template_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_user),
+) -> TemplateOut:
+    await require_membership(org_id, db, user)
+
+    template = await db.get(EmailTemplate, template_id)
+    if template is None or template.org_id != org_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "template not found")
+
+    version = await _latest_version(db, template.id, template.current_version)
+    return _to_out(template, version)
 
 
 @router.put("/{template_id}", response_model=TemplateOut)
@@ -160,6 +181,33 @@ async def update_template(
     await record(db, org_id=org_id, actor_user_id=user.id, action="template.versioned",
                  target_type="template", target_id=str(template.id),
                  metadata={"version": template.current_version})
+    await db.commit()
+    return _to_out(template, version)
+
+
+@router.delete("/{template_id}", response_model=TemplateOut)
+async def archive_template(
+    org_id: UUID,
+    template_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_user),
+) -> TemplateOut:
+    """Soft delete only. A campaign pins template_id + template_version, so a
+    hard DELETE would orphan the history of any campaign that used this
+    template — see module docstring. Archiving just hides it from the
+    default list; _latest_version still resolves it by id+version."""
+    membership = await require_membership(org_id, db, user)
+    require_capability(membership, "edit_template")
+
+    template = await db.get(EmailTemplate, template_id)
+    if template is None or template.org_id != org_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "template not found")
+
+    template.archived = True
+    version = await _latest_version(db, template.id, template.current_version)
+
+    await record(db, org_id=org_id, actor_user_id=user.id, action="template.archived",
+                 target_type="template", target_id=str(template.id))
     await db.commit()
     return _to_out(template, version)
 
