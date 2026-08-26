@@ -186,14 +186,24 @@ def generate_sends(
                 # matching real deliverability benchmarks — an EDA check
                 # (see ml/notebooks) asserts this range and would fail loudly
                 # on a future recalibration mistake here.
+                # Sharpened the same way as the bounce logit above: real
+                # drivers (a contact's own engagement history, whether the
+                # send is personalized) need to clearly separate from noise,
+                # or a model trained on this has nothing learnable and every
+                # metric collapses toward the no-skill baseline regardless of
+                # how good the training pipeline is. prior_open_rate (not
+                # just the boolean has_engaged_ever) is the dominant driver —
+                # matching how a real engagement model would actually behave.
+                prior_open_rate = c.prior_opens / max(c.prior_sends, 1)
                 open_logit = (
-                    -1.9
-                    + 1.6 * c.domain_base_open_rate
-                    + 0.5 * c.has_engaged_ever
-                    - 0.15 * abs(camp.send_hour - 10) / 10  # mid-morning sends open better
-                    + 0.35 * camp.has_personalization
-                    - 0.15 * camp.is_weekend
-                    + local_rng.normal(0, 0.5)
+                    -3.5
+                    + 2.6 * c.domain_base_open_rate
+                    + 3.2 * min(prior_open_rate, 1.0)
+                    + 0.7 * c.has_engaged_ever
+                    - 0.25 * abs(camp.send_hour - 10) / 10  # mid-morning sends open better
+                    + 0.55 * camp.has_personalization
+                    - 0.2 * camp.is_weekend
+                    + local_rng.normal(0, 0.28)
                 )
                 opened = local_rng.binomial(1, _sigmoid(open_logit))
                 if opened:

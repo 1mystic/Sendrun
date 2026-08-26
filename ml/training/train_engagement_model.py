@@ -1,22 +1,11 @@
-"""Stages 4-8: train/validation/test split, feature selection, candidate model
-comparison, ensembling, and final training — all tracked in MLflow.
+"""Engagement (open probability) model — the same pipeline shape as
+train_bounce_model.py, reused deliberately rather than reinvented: split by
+campaign_id, feature-select, compare 3 candidates + ensemble honestly, log
+everything to MLflow, verify the reloaded artifact reproduces test metrics.
 
-## Why a temporal-ish split, not a random split
-
-Rows are split by campaign_id, not by row. A random row split would let a
-contact's OTHER sends from the SAME campaign leak into both train and test
-(rows sharing campaign-level effects like send_hour, subject_length), which
-inflates validation metrics with signal the model would not actually have at
-true serving time — a real point-in-time leakage risk, exactly what PLAN.md
-requires guarding against.
-
-## Why an ensemble comparison, not "pick one model and go"
-
-Three model families are compared honestly on the SAME validation fold:
-logistic regression (a calibrated, interpretable baseline), random forest,
-and gradient-boosted trees (XGBoost). The final choice is whichever wins on
-PR-AUC (not accuracy — see eda_report.txt), and that choice is recorded in
-MLflow with the losing candidates' scores alongside it, not silently discarded.
+Key difference from bounce-risk: only rows where bounced=0 are eligible —
+you cannot "open" an email that never arrived. Filtering happens BEFORE the
+split, so a bounced row never leaks into train, val, or test for this model.
 """
 
 from __future__ import annotations
@@ -31,12 +20,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn.feature_selection import SelectFromModel
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import (
-    average_precision_score,
-    brier_score_loss,
-    precision_recall_curve,
-    roc_auc_score,
-)
+from sklearn.metrics import average_precision_score, brier_score_loss, roc_auc_score
 from sklearn.model_selection import GroupShuffleSplit
 from sklearn.pipeline import Pipeline
 from xgboost import XGBClassifier
@@ -49,9 +33,8 @@ from ml.features.pipeline import (
 )
 
 DATA_PATH = Path("ml/data/sends_raw.parquet")
-MLFLOW_EXPERIMENT = "sendrun-bounce-risk"
+MLFLOW_EXPERIMENT = "sendrun-engagement-risk"
 RANDOM_STATE = 42
-
 
 SplitResult = tuple[
     pd.DataFrame, pd.Series, pd.DataFrame, pd.Series, pd.DataFrame, pd.Series
@@ -59,11 +42,13 @@ SplitResult = tuple[
 
 
 def load_split(df: pd.DataFrame) -> SplitResult:
-    """60/20/20 train/val/test, grouped by campaign_id so no campaign's rows
-    span more than one split — see module docstring."""
-    X = df[ALL_INPUT_FEATURES]
-    y = df["bounced"]
-    groups = df["campaign_id"]
+    """Bounced rows excluded BEFORE splitting — an email that never arrived
+    has no defined open outcome, and including it would let the model learn
+    a spurious correlation between bounce-risk features and "not opened."""
+    eligible = df[df.bounced == 0].reset_index(drop=True)
+    X = eligible[ALL_INPUT_FEATURES]
+    y = eligible["opened"]
+    groups = eligible["campaign_id"]
 
     splitter1 = GroupShuffleSplit(n_splits=1, test_size=0.4, random_state=RANDOM_STATE)
     train_idx, rest_idx = next(splitter1.split(X, y, groups))
@@ -88,11 +73,9 @@ def load_split(df: pd.DataFrame) -> SplitResult:
 
 
 def evaluate(y_true: pd.Series, y_prob: np.ndarray) -> dict[str, float]:
-    """PR-AUC is the headline metric — with a 5.6% positive class, ROC-AUC
-    can look deceptively good while precision at any usable threshold is
-    poor. Brier score checks CALIBRATION: a risk score the UI shows a user
-    ("18/100") is only meaningful if 18% of contacts scored ~0.18 actually
-    bounce, not just that the model ranks bouncers above non-bouncers."""
+    """Open rate here is ~38% — much less imbalanced than bounce's ~12%, so
+    ROC-AUC is a meaningful headline metric too, but PR-AUC and calibration
+    (Brier) still matter for a UI that displays a per-recipient probability."""
     return {
         "roc_auc": roc_auc_score(y_true, y_prob),
         "pr_auc": average_precision_score(y_true, y_prob),
@@ -101,18 +84,14 @@ def evaluate(y_true: pd.Series, y_prob: np.ndarray) -> dict[str, float]:
 
 
 def select_features(pipeline: Pipeline, X_train: pd.DataFrame, y_train: pd.Series) -> np.ndarray:
-    """Stage: feature selection. A quick random forest ranks importance;
-    features contributing negligible signal are dropped before the real
-    candidate comparison — fewer features means faster training, less
-    overfitting risk, and an importance ranking worth reporting on its own.
-    """
     Xt = pipeline.fit_transform(X_train, y_train)
     names = get_output_feature_names(pipeline)
 
     ranker = RandomForestClassifier(
-        n_estimators=200, max_depth=8, class_weight="balanced", random_state=RANDOM_STATE, n_jobs=-1
+        n_estimators=200, max_depth=8, class_weight="balanced",
+        random_state=RANDOM_STATE, n_jobs=-1,
     )
-    selector = SelectFromModel(ranker, threshold="median")  # keep top half by importance
+    selector = SelectFromModel(ranker, threshold="median")
     selector.fit(Xt, y_train)
 
     kept_mask = selector.get_support()
@@ -127,9 +106,6 @@ def select_features(pipeline: Pipeline, X_train: pd.DataFrame, y_train: pd.Serie
 def train_candidates(
     Xt_train: np.ndarray, y_train: pd.Series, Xt_val: np.ndarray, y_val: pd.Series
 ) -> dict[str, tuple[object, dict[str, float]]]:
-    """Trains three candidate model families and returns each with its
-    validation metrics. Nothing here decides a winner yet — that happens in
-    main(), against these honestly-reported numbers."""
     candidates = {
         "logistic_regression": LogisticRegression(
             class_weight="balanced", max_iter=1000, random_state=RANDOM_STATE
@@ -139,7 +115,7 @@ def train_candidates(
             random_state=RANDOM_STATE, n_jobs=-1,
         ),
         "xgboost": XGBClassifier(
-            n_estimators=600, max_depth=4, learning_rate=0.03,
+            n_estimators=400, max_depth=4, learning_rate=0.04,
             min_child_weight=5, subsample=0.8, colsample_bytree=0.8,
             scale_pos_weight=(y_train == 0).sum() / max((y_train == 1).sum(), 1),
             eval_metric="aucpr", random_state=RANDOM_STATE, n_jobs=-1,
@@ -157,10 +133,6 @@ def train_candidates(
 
 
 def build_ensemble(candidates: dict[str, tuple[object, dict]]) -> VotingClassifier:
-    """Soft-voting ensemble over all three families — different model classes
-    make different error patterns, so averaging probabilities typically beats
-    any single member on PR-AUC. Compared honestly against each solo
-    candidate in main(); only kept if it actually wins."""
     return VotingClassifier(
         estimators=[(name, model) for name, (model, _) in candidates.items()],
         voting="soft",
@@ -175,13 +147,14 @@ def main() -> None:
     df = pd.read_parquet(DATA_PATH)
     X_train, y_train, X_val, y_val, X_test, y_test = load_split(df)
     print(f"split: train={len(X_train):,} val={len(X_val):,} test={len(X_test):,}")
+    print(f"open rate (train): {y_train.mean():.2%}")
 
     mlflow.set_experiment(MLFLOW_EXPERIMENT)
 
-    with mlflow.start_run(run_name="bounce-risk-full-pipeline") as run:
+    with mlflow.start_run(run_name="engagement-risk-full-pipeline") as run:
         mlflow.log_params({
             "n_train": len(X_train), "n_val": len(X_val), "n_test": len(X_test),
-            "train_bounce_rate": float(y_train.mean()),
+            "train_open_rate": float(y_train.mean()),
             "random_state": RANDOM_STATE,
         })
 
@@ -215,48 +188,26 @@ def main() -> None:
 
         final_model = ensemble if winner_name == "ensemble" else candidates[winner_name][0]
 
-        # Held-out TEST evaluation — the number that actually gets reported,
-        # since val was used to pick the winner and would be an optimistic estimate.
         test_prob = final_model.predict_proba(Xt_test)[:, 1]
         test_metrics = evaluate(y_test, test_prob)
         for metric_name, value in test_metrics.items():
             mlflow.log_metric(f"test_{metric_name}", value)
         print(f"HELD-OUT TEST metrics ({winner_name}): {test_metrics}")
 
-        precisions, recalls, thresholds = precision_recall_curve(y_test, test_prob)
-        mlflow.log_dict(
-            {"thresholds": thresholds.tolist(), "precisions": precisions[:-1].tolist(),
-             "recalls": recalls[:-1].tolist()},
-            "pr_curve.json",
-        )
-
-        # The full, servable pipeline: raw features in, calibrated bounce
-        # probability out — preprocessing, feature selection, and the model
-        # itself as ONE object. This is what ml/registry/ promotes and what a
-        # serving process loads; it must never need the training script's
-        # internal state (selected_mask, the fitted preprocessor) again.
         full_pipeline = Pipeline([
             ("preprocess", preprocessor),
             ("select", ColumnMaskSelector(selected_mask)),
             ("model", final_model),
         ])
-        # mlflow's sklearn flavor now serializes with skops, which by default
-        # refuses to load any class it doesn't recognize as a stdlib/sklearn
-        # type — a real security control against deserializing arbitrary code
-        # from an untrusted .skops file. Our two custom transformers are ours
-        # (defined in ml/features/pipeline.py, not attacker-controlled), so
-        # it's correct to name them trusted rather than disable the check.
-        # Both live in that module specifically so their qualified name is
-        # stable regardless of which script trains or loads them — see
-        # ColumnMaskSelector's docstring for the failure mode this avoids.
+        # Trust every candidate family's type unconditionally, not just the
+        # winner's — the ensemble (if it wins) embeds all three, and which
+        # single model wins is itself data-dependent (see this file's run:
+        # engagement picked xgboost, bounce-risk picked logistic_regression,
+        # on the same pipeline shape). Trusting only the actual winner's type
+        # would make this script fail nondeterministically depending on
+        # which candidate happens to score best on a given data regeneration.
         model_info = mlflow.sklearn.log_model(
             full_pipeline, name="model", input_example=X_train.head(3),
-            # Trust every candidate family unconditionally, not just today's
-            # winner — which model wins is data-dependent (see
-            # train_engagement_model.py, which picked xgboost on the same
-            # pipeline shape this file picked logistic_regression on), and
-            # the ensemble embeds all three regardless of which single model
-            # scores best.
             skops_trusted_types=[
                 "ml.features.pipeline.DerivedFeatures",
                 "ml.features.pipeline.ColumnMaskSelector",
@@ -266,12 +217,6 @@ def main() -> None:
         )
         mlflow.log_param("model_uri", model_info.model_uri)
 
-        # Verify the ACTUALLY-SERIALIZED-AND-RELOADED pipeline reproduces the
-        # reported test metrics — not the in-memory object, which would pass
-        # even if serialization silently dropped state (exactly the class of
-        # bug the selected-feature/full-feature mismatch earlier was). Loading
-        # back via mlflow.sklearn.load_model is what a real serving process
-        # does, so this is the one check that actually stands in for it.
         reloaded_pipeline = mlflow.sklearn.load_model(model_info.model_uri)
         reloaded_prob = reloaded_pipeline.predict_proba(X_test)[:, 1]
         np.testing.assert_allclose(reloaded_prob, test_prob, rtol=1e-6)
