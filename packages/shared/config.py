@@ -15,6 +15,13 @@ class Settings(BaseSettings):
     sql_echo: bool = False
     redis_url: str = ""
 
+    # Off by default — see services/api/rate_limit_middleware.py. Enabling
+    # without REDIS_URL set falls back to a single-process in-memory bucket
+    # (correct for a solo dev server, NOT safe across multiple instances).
+    rate_limit_enabled: bool = False
+    rate_limit_capacity: float = 60.0
+    rate_limit_refill_per_second: float = 1.0
+
     email_provider: Literal["fake", "resend"] = "fake"
     resend_api_key: str = ""
     resend_webhook_secret: str = ""

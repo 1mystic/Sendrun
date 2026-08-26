@@ -1,0 +1,121 @@
+name: CI
+
+# Runs on every push and PR to main. Two independent jobs (backend, frontend)
+# so a frontend-only change doesn't wait on the Python test suite and
+# vice versa. The durability test job runs the crash-recovery suite in
+# isolation and MUST pass — see its step comment for why it's broken out
+# from the general test job rather than folded in.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (lint + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Lint (ruff)
+        run: uv run ruff check packages services tests ml
+
+      - name: Type check (mypy)
+        # Non-fatal for now — the codebase is not fully typed-strict yet
+        # (Pydantic/SQLAlchemy dynamic typing has real gaps). Runs to
+        # surface regressions in the job log without blocking merges on
+        # pre-existing gaps; tighten to a hard failure once the baseline
+        # is clean.
+        run: uv run mypy packages services --ignore-missing-imports || true
+
+      - name: Run test suite
+        run: uv run pytest tests/ -v --tb=short
+
+      - name: Durability suite — must pass, never skip
+        # Redundant with the step above (these tests are already included
+        # in tests/), but broken out as its OWN named, always-visible CI
+        # step because this specific suite is the one that proves the
+        # project's central claim (CLAUDE.md: kill a worker mid-campaign,
+        # nothing is lost, nothing is sent twice). A reviewer should be
+        # able to see "Durability suite: passed" as a distinct check
+        # without reading test suite output line by line.
+        run: uv run pytest tests/test_durability.py -v
+
+      - name: Secrets audit
+        run: uv run python scripts/audit_secrets.py
+
+  frontend:
+    name: Frontend (lint + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          # No API URL configured in CI — the frontend must build cleanly
+          # against its mock-data fallback (see apps/web/lib/api.ts). A
+          # build that only succeeds with a live backend is not something
+          # CI can verify anyway.
+          NEXT_PUBLIC_API_URL: ""
+
+  migrations:
+    name: Alembic migrations apply cleanly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Apply all migrations against a fresh SQLite DB
+        run: |
+          rm -f local.db
+          uv run alembic upgrade head
+
+      - name: Verify downgrade/upgrade round-trips
+        # A migration that can't be reversed is a real deploy risk — this
+        # doesn't test against Postgres (see NEXT.md's scope note on why
+        # that isn't available here), but a SQLite round-trip catches the
+        # class of mistake where a migration's downgrade() was left as a
+        # stub or drifted from its upgrade().
+        run: |
+          uv run alembic downgrade base
+          uv run alembic upgrade head

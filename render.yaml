@@ -1,0 +1,71 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Defines both services this project needs on Render's free tier:
+#   1. `sendrun-api`    — the FastAPI web service
+#   2. `sendrun-worker` — the durable engine's worker process (background,
+#                          no public URL — it only talks to Postgres/Redis)
+#
+# Deploy: connect this repo in the Render dashboard and it detects this file
+# automatically ("New +" -> "Blueprint"). See DEPLOY.md for the full
+# step-by-step, including the free-tier caveats (cold start, 15min idle
+# spin-down) this file alone doesn't solve.
+#
+# Neither service bundles a database — Postgres is Neon (not Render's own
+# Postgres, which is not free-tier-friendly long-term) and Redis is Upstash.
+# Both are created separately and their URLs pasted into each service's env
+# vars in the dashboard, or via `render.yaml`'s envVarGroups if managing
+# secrets outside the dashboard — see DEPLOY.md.
+
+services:
+  - type: web
+    name: sendrun-api
+    runtime: python
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: "pip install uv && uv pip install --system -e ."
+    startCommand: "uvicorn services.api.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: DATABASE_URL
+        sync: false # set to the Neon connection string in the dashboard
+      - key: REDIS_URL
+        sync: false # set to the Upstash connection string in the dashboard
+      - key: SESSION_SECRET
+        generateValue: true # Render generates a random secret at deploy time
+      - key: COOKIE_SECURE
+        value: "true" # Render terminates TLS in front of the app — see auth.py's comment on why this matters
+      - key: EMAIL_PROVIDER
+        value: "fake" # flip to "resend" once a Resend account + domain exist
+      - key: LLM_PROVIDER
+        value: "fake" # flip to anthropic/openai/openrouter once a key exists
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+      - key: BOUNCE_MODEL_ENABLED
+        value: "false" # needs an MLflow store reachable from this service; see NEXT.md
+
+  - type: worker
+    name: sendrun-worker
+    runtime: python
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: "pip install uv && uv pip install --system -e ."
+    startCommand: "python -m services.worker.main"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: EMAIL_PROVIDER
+        value: "fake"
+      - key: WORKER_ID
+        value: "worker_render_1"
+      - key: LEASE_SECONDS
+        value: "30"
+      - key: POLL_INTERVAL_SECONDS
+        value: "1"
