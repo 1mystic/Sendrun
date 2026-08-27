@@ -40,6 +40,9 @@ class OrgOut(BaseModel):
     name: str
     slug: str
     role: str
+    from_address: str | None = None
+    from_name: str | None = None
+    reply_to_address: str | None = None
 
 
 class MemberOut(BaseModel):
@@ -56,6 +59,12 @@ class InviteRequest(BaseModel):
 
 class UpdateOrgRequest(BaseModel):
     name: str = Field(min_length=1, max_length=200)
+    # None means "don't change this field" — distinct from an explicit "" to
+    # clear it back to the global default (see Organization.from_address's
+    # NULL-means-use-the-global-default comment in models.py).
+    from_address: EmailStr | None = None
+    from_name: str | None = Field(default=None, max_length=200)
+    reply_to_address: EmailStr | None = None
 
 
 class AuditLogOut(BaseModel):
@@ -110,7 +119,11 @@ async def create_organization(
     await record(db, org_id=org.id, actor_user_id=user.id, action="organization.created",
                  target_type="organization", target_id=str(org.id))
     await db.commit()
-    return OrgOut(id=str(org.id), name=org.name, slug=org.slug, role=Role.OWNER.name.lower())
+    return OrgOut(
+        id=str(org.id), name=org.name, slug=org.slug, role=Role.OWNER.name.lower(),
+        from_address=org.from_address, from_name=org.from_name,
+        reply_to_address=org.reply_to_address,
+    )
 
 
 @router.get("", response_model=list[OrgOut])
@@ -124,7 +137,11 @@ async def list_my_organizations(
         .where(OrganizationMember.user_id == user.id)
     )
     return [
-        OrgOut(id=str(org.id), name=org.name, slug=org.slug, role=role)
+        OrgOut(
+            id=str(org.id), name=org.name, slug=org.slug, role=role,
+            from_address=org.from_address, from_name=org.from_name,
+            reply_to_address=org.reply_to_address,
+        )
         for org, role in result.all()
     ]
 
@@ -188,10 +205,20 @@ async def update_organization(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "organization not found")
 
     org.name = body.name.strip()
+    if body.from_address is not None:
+        org.from_address = body.from_address
+    if body.from_name is not None:
+        org.from_name = body.from_name.strip()
+    if body.reply_to_address is not None:
+        org.reply_to_address = body.reply_to_address
     await record(db, org_id=org_id, actor_user_id=user.id, action="organization.updated",
                  target_type="organization", target_id=str(org_id))
     await db.commit()
-    return OrgOut(id=str(org.id), name=org.name, slug=org.slug, role=membership.role.name.lower())
+    return OrgOut(
+        id=str(org.id), name=org.name, slug=org.slug, role=membership.role.name.lower(),
+        from_address=org.from_address, from_name=org.from_name,
+        reply_to_address=org.reply_to_address,
+    )
 
 
 @router.get("/{org_id}/audit-log", response_model=list[AuditLogOut])

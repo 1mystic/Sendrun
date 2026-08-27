@@ -64,6 +64,12 @@ class Settings(BaseSettings):
     # services/api/routers/auth.py for why this cannot just be hardcoded True.
     cookie_secure: bool = False
 
+    # The one browser origin allowed to call this API with credentials (see
+    # main.py's CORS setup) — never "*", since a wildcard origin cannot carry
+    # credentials per the CORS spec and the session cookie is httponly
+    # regardless. Set to the deployed Vercel URL in production.
+    frontend_origin: str = "http://localhost:3000"
+
 
 @lru_cache
 def get_settings() -> Settings:

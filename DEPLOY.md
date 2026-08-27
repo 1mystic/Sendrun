@@ -80,6 +80,14 @@ below) and hand you this checklist.
    for them otherwise):
    - `DATABASE_URL` — the Neon URL from step 1
    - `REDIS_URL` — the Upstash URL from step 2
+   - `FRONTEND_ORIGIN` (API service only) — the deployed Vercel URL, e.g.
+     `https://sendrun.vercel.app`. **Chicken-and-egg with step 5** (Vercel needs this
+     service's URL, this service needs Vercel's URL): deploy once with a placeholder
+     (or leave it as the `localhost:3000` default), come back after step 5 gives you the
+     real Vercel URL, and update it — Render redeploys automatically on an env var
+     change. A mismatch here is the #1 cause of "the frontend works but every API call
+     fails with a CORS error in the browser console" — see `services/api/main.py`'s CORS
+     setup.
 4. Deploy. `sendrun-api`'s health check hits `/api/health` — watch the Render logs for
    the first successful check.
 

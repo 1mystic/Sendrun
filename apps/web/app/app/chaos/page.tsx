@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import Shell from "@/components/Shell";
-import { PageTitle } from "@/components/ui";
+import { ArrowRight, PageTitle } from "@/components/ui";
 import {
   DEFAULT_SEED,
   EVENT_SLIDERS,
@@ -138,7 +138,8 @@ export default function ChaosPage() {
       <div className="h-6" />
       <div className="flex flex-wrap gap-2.5">
         <Link href="/app/campaigns/campaign_8231" className="btn no-underline">
-          Run seeded campaign →
+          Run seeded campaign
+          <ArrowRight />
         </Link>
         <button type="button" className="btn btn-ghost" onClick={resetAll}>
           Reset to defaults

@@ -111,3 +111,20 @@ async def test_analytics_aggregates_real_delivery_counts(client: AsyncClient, db
     assert body["total_sent"] == 2
     assert body["delivery_rate"] == 50.0
     assert any(d["domain"] == "gmail.com" and d["sent"] == 2 for d in body["domains"])
+
+
+@pytest.mark.asyncio
+async def test_jobs_inspector_degrades_cleanly_on_sqlite(client: AsyncClient):
+    """The `tasks` table is Postgres-only by design (JSONB, see
+    packages/durable/queue.py) and is never created on SQLite, which is what
+    this whole test suite runs against. The endpoint must return an empty
+    list here, not a 500 — a raw-SQL crash mid-request can leave the response
+    without CORS headers, which a browser then misreports as a CORS failure
+    rather than the real server error underneath it."""
+    await _signup(client, "opsowner@example.com")
+    org = await _create_org(client, "Ops Org")
+
+    for path in ("dead-letter", "in-flight"):
+        r = await client.get(f"/api/organizations/{org['id']}/jobs/{path}")
+        assert r.status_code == 200
+        assert r.json() == []

@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import Shell from "@/components/Shell";
-import { PageTitle, Pill } from "@/components/ui";
+import { ArrowRight, PageTitle, Pill } from "@/components/ui";
 import { TEMPLATES } from "@/lib/mock-ops";
 import {
   archiveTemplate,
@@ -252,6 +253,14 @@ export default function TemplatesPage() {
                   </span>
                 ))}
               </div>
+              <Link
+                href={`/app/campaigns/new?template=${t.id}`}
+                className="btn btn-sm no-underline"
+                style={{ textAlign: "center" }}
+              >
+                Use in new campaign
+                <ArrowRight />
+              </Link>
               <div
                 className="mt-1 flex items-center justify-between border-t pt-3"
                 style={{ borderColor: "var(--line)" }}

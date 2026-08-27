@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Shell from "@/components/Shell";
-import { PageTitle, SectionLabel } from "@/components/ui";
+import { ArrowRight, PageTitle, SectionLabel } from "@/components/ui";
 import { createGroup, getCurrentOrgId } from "@/lib/api";
 
 export default function NewListPage() {
@@ -44,7 +44,7 @@ export default function NewListPage() {
         </label>
         {error && <p style={{ color: "var(--color-crit)", fontSize: ".8rem", marginBottom: 12 }}>{error}</p>}
         <button type="button" className="btn" disabled={creating || !name.trim()} onClick={handleCreate}>
-          {creating ? "Creating…" : "Create & import contacts →"}
+          {creating ? "Creating…" : <>Create &amp; import contacts<ArrowRight /></>}
         </button>
       </div>
     </Shell>

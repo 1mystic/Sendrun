@@ -56,6 +56,15 @@ LIMIT :limit
 
 
 async def _fetch(db: AsyncSession, org_id: UUID, statuses: list[str], limit: int) -> list[TaskOut]:
+    # The `tasks` table itself is Postgres-only by design (JSONB, see
+    # packages/durable/queue.py's CREATE_TASKS_TABLE) — it is never created on
+    # SQLite, which is what local dev / tests run against. Returning an empty
+    # inspector result there is honest (there is truly nothing to show against
+    # a store that doesn't exist) and avoids a 500 that a browser reports as a
+    # misleading CORS failure.
+    if db.bind.dialect.name != "postgresql":
+        return []
+
     rows = (
         await db.execute(
             text(_SELECT_TASKS), {"org_id": str(org_id), "statuses": statuses, "limit": limit}

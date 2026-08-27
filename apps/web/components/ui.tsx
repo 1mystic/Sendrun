@@ -2,6 +2,53 @@ import type { ReactNode } from "react";
 
 /** Shared primitives matching design/prototypes/. */
 
+/** Replaces the plain "→"/"←" glyphs on buttons/links — crisper at small
+ * sizes and themeable via currentColor instead of relying on font glyph
+ * rendering (which varies across platforms). */
+export function ArrowRight({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+      style={{ display: "inline-block", verticalAlign: "-2px", marginLeft: 6 }}
+    >
+      <path
+        d="M3.5 8h9M8.5 3.5 13 8l-4.5 4.5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function ArrowLeft({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+      style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }}
+    >
+      <path
+        d="M12.5 8h-9M7.5 3.5 3 8l4.5 4.5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function Pill({
   tone = "default",
   children,

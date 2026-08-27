@@ -144,6 +144,7 @@ async def send_email_task(
     provider: EmailProvider,
     worker_id: str,
     from_addr: str,
+    reply_to: str | None = None,
     attempt: int = 1,
 ) -> SendOutcome:
     """Execute one email send. Safe to call any number of times for the same job."""
@@ -176,6 +177,7 @@ async def send_email_task(
         idempotency_key=str(job_id),
         to=claimed.to_addr,
         from_addr=from_addr,
+        reply_to=reply_to,
         subject=claimed.subject,
         html=claimed.html,
         text=claimed.text,

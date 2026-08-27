@@ -6,7 +6,7 @@ import { useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import Shell from "@/components/Shell";
-import { PageTitle, SectionLabel } from "@/components/ui";
+import { ArrowLeft, ArrowRight, PageTitle, SectionLabel } from "@/components/ui";
 import {
   getCurrentOrgId,
   importContactsToGroup,
@@ -135,7 +135,7 @@ export default function ImportWizardPage() {
   return (
     <Shell
       crumb="Import contacts"
-      actions={<Link href={`/app/lists/${groupId}`} className="btn btn-ghost btn-sm no-underline">← Back to list</Link>}
+      actions={<Link href={`/app/lists/${groupId}`} className="btn btn-ghost btn-sm no-underline"><ArrowLeft />Back to list</Link>}
     >
       <PageTitle title="Import contacts" lede="Paste rows or upload a file, map columns, then confirm." />
 
@@ -216,7 +216,8 @@ export default function ImportWizardPage() {
               setStep(2);
             }}
           >
-            Next: map columns →
+            Next: map columns
+            <ArrowRight />
           </button>
         </div>
       )}
@@ -304,10 +305,12 @@ export default function ImportWizardPage() {
           )}
           <div className="flex flex-wrap gap-[9px]">
             <button type="button" className="btn" disabled={!emailColumn} onClick={() => setStep(3)}>
-              Next: preview →
+              Next: preview
+              <ArrowRight />
             </button>
             <button type="button" className="btn btn-ghost" onClick={() => setStep(1)}>
-              ← Back
+              <ArrowLeft />
+              Back
             </button>
           </div>
         </div>
@@ -361,7 +364,8 @@ export default function ImportWizardPage() {
               {submitting ? "Importing…" : `Import ${table.rows.length} contact${table.rows.length === 1 ? "" : "s"}`}
             </button>
             <button type="button" className="btn btn-ghost" onClick={() => setStep(2)}>
-              ← Back
+              <ArrowLeft />
+              Back
             </button>
           </div>
         </div>
@@ -430,7 +434,8 @@ export default function ImportWizardPage() {
           </p>
 
           <button type="button" className="btn" onClick={() => router.push(`/app/lists/${groupId}`)}>
-            View list →
+            View list
+            <ArrowRight />
           </button>
         </div>
       )}

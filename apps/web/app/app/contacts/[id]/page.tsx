@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Shell from "@/components/Shell";
-import { PageTitle, Pill } from "@/components/ui";
+import { ArrowLeft, PageTitle, Pill } from "@/components/ui";
 import { CONTACTS } from "@/lib/mock";
 import { CONTACT_FEATURES, CONTACT_SENDS } from "@/lib/mock-ops";
 import { getCurrentOrgId, listContactsLive, useMocks, type ContactOut } from "@/lib/api";
@@ -37,7 +37,7 @@ function MockContactDetail({ id }: { id: string }) {
   return (
     <Shell
       crumb={contact.name}
-      actions={<Link href="/app/contacts" className="btn btn-ghost btn-sm no-underline">← All contacts</Link>}
+      actions={<Link href="/app/contacts" className="btn btn-ghost btn-sm no-underline"><ArrowLeft />All contacts</Link>}
     >
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -156,7 +156,7 @@ function LiveContactDetail({ id }: { id: string }) {
 
   if (contact === undefined) {
     return (
-      <Shell crumb="Contact" actions={<Link href="/app/contacts" className="btn btn-ghost btn-sm no-underline">← All contacts</Link>}>
+      <Shell crumb="Contact" actions={<Link href="/app/contacts" className="btn btn-ghost btn-sm no-underline"><ArrowLeft />All contacts</Link>}>
         <p className="text-faint">Loading…</p>
       </Shell>
     );
@@ -164,7 +164,7 @@ function LiveContactDetail({ id }: { id: string }) {
 
   if (contact === null) {
     return (
-      <Shell crumb="Contact" actions={<Link href="/app/contacts" className="btn btn-ghost btn-sm no-underline">← All contacts</Link>}>
+      <Shell crumb="Contact" actions={<Link href="/app/contacts" className="btn btn-ghost btn-sm no-underline"><ArrowLeft />All contacts</Link>}>
         <p className="text-faint">Contact not found.</p>
       </Shell>
     );
@@ -173,7 +173,7 @@ function LiveContactDetail({ id }: { id: string }) {
   return (
     <Shell
       crumb={contact.name || contact.email}
-      actions={<Link href="/app/contacts" className="btn btn-ghost btn-sm no-underline">← All contacts</Link>}
+      actions={<Link href="/app/contacts" className="btn btn-ghost btn-sm no-underline"><ArrowLeft />All contacts</Link>}
     >
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>

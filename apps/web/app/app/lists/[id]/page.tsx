@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound, useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Shell from "@/components/Shell";
-import { PageTitle, Pill } from "@/components/ui";
+import { ArrowLeft, PageTitle, Pill } from "@/components/ui";
 import { deleteGroup, getCurrentOrgId, getGroup, useMocks, type GroupDetailOut } from "@/lib/api";
 
 export default function ListDetailPage() {
@@ -54,7 +54,7 @@ export default function ListDetailPage() {
 
   if (group === undefined) {
     return (
-      <Shell crumb="List" actions={<Link href="/app/lists" className="btn btn-ghost btn-sm no-underline">← All lists</Link>}>
+      <Shell crumb="List" actions={<Link href="/app/lists" className="btn btn-ghost btn-sm no-underline"><ArrowLeft />All lists</Link>}>
         <p className="text-faint">Loading…</p>
       </Shell>
     );
@@ -63,7 +63,7 @@ export default function ListDetailPage() {
   if (group === null) {
     if (!useMocks && !error) notFound();
     return (
-      <Shell crumb="List" actions={<Link href="/app/lists" className="btn btn-ghost btn-sm no-underline">← All lists</Link>}>
+      <Shell crumb="List" actions={<Link href="/app/lists" className="btn btn-ghost btn-sm no-underline"><ArrowLeft />All lists</Link>}>
         <p style={{ color: "var(--color-crit)" }}>{error ?? "List not found."}</p>
       </Shell>
     );
@@ -78,7 +78,8 @@ export default function ListDetailPage() {
             Import more
           </Link>
           <Link href="/app/lists" className="btn btn-ghost btn-sm no-underline">
-            ← All lists
+            <ArrowLeft />
+            All lists
           </Link>
         </>
       }

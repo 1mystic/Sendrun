@@ -115,6 +115,14 @@ class Organization(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(200))
     slug: Mapped[str] = mapped_column(String(80), unique=True, index=True)
 
+    # NULL means "use the global FROM_ADDRESS/FROM_NAME default" (Settings in
+    # config.py) — an org that never sets these still sends. reply_to is
+    # independent of from_address since a provider's from-domain is often
+    # locked to what's DNS-verified, while replies can go anywhere.
+    from_address: Mapped[str | None] = mapped_column(String(320), nullable=True)
+    from_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    reply_to_address: Mapped[str | None] = mapped_column(String(320), nullable=True)
+
     members: Mapped[list[OrganizationMember]] = relationship(back_populates="organization")
 
 

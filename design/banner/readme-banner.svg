@@ -1,61 +1,66 @@
-<svg width="1200" height="260" viewBox="0 0 1200 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sendrun — durable, AI-assisted email campaign platform">
+<svg width="1200" height="340" viewBox="0 0 1200 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sendrun — durable, AI-assisted email campaign platform">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1C1815"/>
+      <stop offset="0%" stop-color="#201B17"/>
       <stop offset="100%" stop-color="#14110F"/>
     </linearGradient>
-    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
-      <path d="M 28 0 L 0 0 0 28" fill="none" stroke="#F5F1E8" stroke-opacity="0.035" stroke-width="1"/>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#E4491F" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#E4491F" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#F5F1E8" stroke-opacity="0.04" stroke-width="1"/>
     </pattern>
   </defs>
 
-  <rect width="1200" height="260" fill="url(#bg)"/>
-  <rect width="1200" height="260" fill="url(#grid)"/>
+  <rect width="1200" height="340" fill="url(#bg)"/>
+  <rect width="1200" height="340" fill="url(#grid)"/>
+  <rect width="700" height="340" fill="url(#glow)"/>
 
-  <!-- job chain motif: independent, idempotent jobs converging to sent -->
-  <g transform="translate(70,175)" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10" letter-spacing="1">
-    <g>
-      <circle cx="0" cy="0" r="4.5" fill="#7FB069"/>
-      <line x1="6" y1="0" x2="46" y2="0" stroke="#3A342E" stroke-width="2"/>
-      <circle cx="52" cy="0" r="4.5" fill="#7FB069"/>
-      <text x="0" y="20" fill="#8A8178">job_2381</text>
-    </g>
-    <g transform="translate(160,0)">
-      <circle cx="0" cy="0" r="4.5" fill="#D9A441"/>
-      <line x1="6" y1="0" x2="46" y2="0" stroke="#3A342E" stroke-width="2" stroke-dasharray="3 3"/>
-      <circle cx="52" cy="0" r="4.5" fill="#3A342E" stroke="#E4491F" stroke-width="1.5"/>
-      <text x="0" y="20" fill="#8A8178">job_2382 · retry</text>
-    </g>
-    <g transform="translate(320,0)">
-      <circle cx="0" cy="0" r="4.5" fill="#7FB069"/>
-      <line x1="6" y1="0" x2="46" y2="0" stroke="#3A342E" stroke-width="2"/>
-      <circle cx="52" cy="0" r="4.5" fill="#7FB069"/>
-      <text x="0" y="20" fill="#8A8178">job_2383</text>
-    </g>
-  </g>
-
-  <!-- wordmark -->
-  <g transform="translate(70,88)">
-    <rect x="0" y="-34" width="10" height="44" fill="#E4491F"/>
-    <text x="26" y="0" font-family="'Space Grotesk', 'Segoe UI', system-ui, sans-serif" font-size="56" font-weight="700" letter-spacing="-2" fill="#F5F1E8">Sendrun</text>
+  <!-- wordmark, big -->
+  <g transform="translate(80,168)">
+    <rect x="0" y="-72" width="16" height="92" fill="#E4491F"/>
+    <text x="40" y="0" font-family="'Space Grotesk', 'Segoe UI', system-ui, sans-serif" font-size="116" font-weight="700" letter-spacing="-5" fill="#F5F1E8">Sendrun</text>
   </g>
 
   <!-- tagline -->
-  <text x="70" y="122" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="13" letter-spacing="0.5" fill="#B8AFA4">
+  <text x="80" y="222" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="19" font-weight="600" letter-spacing="1.5" fill="#C9BFB2">
     DURABLE, AI-ASSISTED EMAIL CAMPAIGN PLATFORM
   </text>
 
-  <!-- right-side status pill -->
-  <g transform="translate(870,50)">
-    <rect x="0" y="0" width="260" height="30" rx="15" fill="none" stroke="#E4491F" stroke-opacity="0.5"/>
-    <circle cx="18" cy="15" r="4" fill="#E4491F"/>
-    <text x="32" y="19" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11" font-weight="600" letter-spacing="1" fill="#E4491F">ZERO DUPLICATE SENDS</text>
-  </g>
-  <g transform="translate(870,90)">
-    <rect x="0" y="0" width="260" height="30" rx="15" fill="none" stroke="#7FB069" stroke-opacity="0.5"/>
-    <circle cx="18" cy="15" r="4" fill="#7FB069"/>
-    <text x="32" y="19" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11" font-weight="600" letter-spacing="1" fill="#7FB069">KILL-WORKER PROVEN</text>
+  <line x1="80" y1="252" x2="1120" y2="252" stroke="#3A342E" stroke-width="1.5"/>
+
+  <!-- job chain motif: independent, idempotent jobs converging to sent -->
+  <g transform="translate(80,296)" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="14" font-weight="600" letter-spacing="0.5">
+    <g>
+      <circle cx="0" cy="0" r="7" fill="#7FB069"/>
+      <line x1="10" y1="0" x2="70" y2="0" stroke="#4A423A" stroke-width="2.5"/>
+      <circle cx="78" cy="0" r="7" fill="#7FB069"/>
+      <text x="92" y="5" fill="#8A8178">job_2381 · sent</text>
+    </g>
+    <g transform="translate(300,0)">
+      <circle cx="0" cy="0" r="7" fill="#D9A441"/>
+      <line x1="10" y1="0" x2="70" y2="0" stroke="#4A423A" stroke-width="2.5" stroke-dasharray="4 4"/>
+      <circle cx="78" cy="0" r="7" fill="#14110F" stroke="#E4491F" stroke-width="2.5"/>
+      <text x="92" y="5" fill="#8A8178">job_2382 · retry</text>
+    </g>
+    <g transform="translate(620,0)">
+      <circle cx="0" cy="0" r="7" fill="#7FB069"/>
+      <line x1="10" y1="0" x2="70" y2="0" stroke="#4A423A" stroke-width="2.5"/>
+      <circle cx="78" cy="0" r="7" fill="#7FB069"/>
+      <text x="92" y="5" fill="#8A8178">job_2383 · sent</text>
+    </g>
   </g>
 
-  <line x1="70" y1="150" x2="1130" y2="150" stroke="#3A342E" stroke-width="1"/>
+  <!-- right-side status pills, bolder -->
+  <g transform="translate(760,64)">
+    <rect x="0" y="0" width="360" height="44" rx="22" fill="#E4491F" fill-opacity="0.12" stroke="#E4491F" stroke-width="1.5"/>
+    <circle cx="26" cy="22" r="6" fill="#E4491F"/>
+    <text x="46" y="28" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="15" font-weight="700" letter-spacing="1.2" fill="#F5AD91">ZERO DUPLICATE SENDS</text>
+  </g>
+  <g transform="translate(760,120)">
+    <rect x="0" y="0" width="360" height="44" rx="22" fill="#7FB069" fill-opacity="0.12" stroke="#7FB069" stroke-width="1.5"/>
+    <circle cx="26" cy="22" r="6" fill="#7FB069"/>
+    <text x="46" y="28" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="15" font-weight="700" letter-spacing="1.2" fill="#B7DDA3">KILL-WORKER PROVEN</text>
+  </g>
 </svg>

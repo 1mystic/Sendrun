@@ -8,9 +8,11 @@ import {
   getCurrentOrgId,
   inviteMember,
   listMembers,
+  listMyOrganizations,
   updateOrganization,
   useMocks,
   type MemberOut,
+  type OrgOut,
 } from "@/lib/api";
 
 const TABS = [
@@ -65,6 +67,12 @@ export default function SettingsPage() {
   const [inviting, setInviting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [fromName, setFromName] = useState("");
+  const [fromAddress, setFromAddress] = useState("");
+  const [replyTo, setReplyTo] = useState("");
+  const [savingSending, setSavingSending] = useState(false);
+  const [sendingSaved, setSendingSaved] = useState(false);
+
   useEffect(() => {
     async function load() {
       if (useMocks) return;
@@ -75,7 +83,15 @@ export default function SettingsPage() {
         return;
       }
       try {
-        setMembers(await listMembers(orgId));
+        const [orgs, teamMembers] = await Promise.all([listMyOrganizations(), listMembers(orgId)]);
+        const org = orgs.find((o) => o.id === orgId) as OrgOut | undefined;
+        if (org) {
+          setOrgName(org.name);
+          setFromName(org.from_name ?? "");
+          setFromAddress(org.from_address ?? "");
+          setReplyTo(org.reply_to_address ?? "");
+        }
+        setMembers(teamMembers);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load team");
       } finally {
@@ -91,12 +107,32 @@ export default function SettingsPage() {
     setSavingOrg(true);
     setOrgSaved(false);
     try {
-      await updateOrganization(orgId, orgName);
+      await updateOrganization(orgId, { name: orgName });
       setOrgSaved(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save organization name");
     } finally {
       setSavingOrg(false);
+    }
+  }
+
+  async function handleSaveSending() {
+    const orgId = getCurrentOrgId();
+    if (!orgId || useMocks) return;
+    setSavingSending(true);
+    setSendingSaved(false);
+    try {
+      await updateOrganization(orgId, {
+        name: orgName,
+        from_name: fromName || null,
+        from_address: fromAddress || null,
+        reply_to_address: replyTo || null,
+      });
+      setSendingSaved(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save sending settings");
+    } finally {
+      setSavingSending(false);
     }
   }
 
@@ -219,16 +255,52 @@ export default function SettingsPage() {
       {tab === "sending" && (
         <div className="card" style={{ maxWidth: 480 }}>
           <div className="sec">Sending configuration</div>
-          <Field id="from-name" label="From name" defaultValue={SENDING_SETTINGS.fromName} disabled={!useMocks} />
-          <Field id="from-address" label="From address" defaultValue={SENDING_SETTINGS.fromAddress} type="email" disabled={!useMocks} />
-          <Field id="reply-to" label="Reply-to" defaultValue={SENDING_SETTINGS.replyTo} type="email" disabled={!useMocks} />
-          <Field id="daily-cap" label="Daily send cap" defaultValue={SENDING_SETTINGS.dailyCap} type="number" hint="Hard limit across all campaigns per 24h window." disabled={!useMocks} />
-          <Field id="rate-limit" label="Rate limit" defaultValue={SENDING_SETTINGS.ratePerSecond} type="number" hint="Sends per second to the provider." disabled={!useMocks} />
-          <button type="button" className="btn mt-2" disabled>Save changes</button>
+          {useMocks ? (
+            <>
+              <Field id="from-name" label="From name" defaultValue={SENDING_SETTINGS.fromName} disabled />
+              <Field id="from-address" label="From address" defaultValue={SENDING_SETTINGS.fromAddress} type="email" disabled />
+              <Field id="reply-to" label="Reply-to" defaultValue={SENDING_SETTINGS.replyTo} type="email" disabled />
+            </>
+          ) : (
+            <>
+              <label htmlFor="from-name" className="field-label" style={{ marginBottom: 16, display: "block" }}>
+                From name
+                <input
+                  id="from-name" className="input mt-1.5" value={fromName}
+                  onChange={(e) => setFromName(e.target.value)}
+                  placeholder="Sendrun"
+                />
+              </label>
+              <label htmlFor="from-address" className="field-label" style={{ marginBottom: 16, display: "block" }}>
+                From address
+                <input
+                  id="from-address" className="input mt-1.5" type="email" value={fromAddress}
+                  onChange={(e) => setFromAddress(e.target.value)}
+                  placeholder="hello@yourorg.com"
+                />
+                <span className="mt-1 block" style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", color: "var(--faint)", textTransform: "none", letterSpacing: 0 }}>
+                  Must be a domain verified with your email provider, or the provider will reject the send.
+                </span>
+              </label>
+              <label htmlFor="reply-to" className="field-label" style={{ marginBottom: 16, display: "block" }}>
+                Reply-to
+                <input
+                  id="reply-to" className="input mt-1.5" type="email" value={replyTo}
+                  onChange={(e) => setReplyTo(e.target.value)}
+                  placeholder="support@yourorg.com"
+                />
+              </label>
+              <button type="button" className="btn mt-2" disabled={savingSending} onClick={handleSaveSending}>
+                {savingSending ? "Saving…" : sendingSaved ? "Saved" : "Save changes"}
+              </button>
+            </>
+          )}
+          <Field id="daily-cap" label="Daily send cap" defaultValue={SENDING_SETTINGS.dailyCap} type="number" hint="Hard limit across all campaigns per 24h window." disabled />
+          <Field id="rate-limit" label="Rate limit" defaultValue={SENDING_SETTINGS.ratePerSecond} type="number" hint="Sends per second to the provider." disabled />
           {!useMocks && (
             <p className="text-faint mt-3" style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", lineHeight: 1.6 }}>
-              Not yet configurable — send rate is set per-campaign at launch; there is no
-              org-level sending settings endpoint yet.
+              Daily cap and rate limit are not yet org-configurable — rate is set per-campaign
+              at launch (Campaign.send_rate_per_second).
             </p>
           )}
         </div>

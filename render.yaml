@@ -37,6 +37,8 @@ services:
         generateValue: true # Render generates a random secret at deploy time
       - key: COOKIE_SECURE
         value: "true" # Render terminates TLS in front of the app — see auth.py's comment on why this matters
+      - key: FRONTEND_ORIGIN
+        sync: false # set to your deployed Vercel URL, e.g. https://sendrun.vercel.app
       - key: EMAIL_PROVIDER
         value: "fake" # flip to "resend" once a Resend account + domain exist
       - key: LLM_PROVIDER

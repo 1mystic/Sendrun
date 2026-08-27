@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import Shell from "@/components/Shell";
-import { SectionLabel } from "@/components/ui";
+import { ArrowLeft, SectionLabel } from "@/components/ui";
 import { createCampaign, launchCampaign, getCampaignDraft, getCurrentOrgId, useMocks } from "@/lib/api";
 import Stepper from "../../Stepper";
 
@@ -147,7 +147,8 @@ export default function ApprovePage() {
           {launching ? "Launching…" : "Launch 122 jobs"}
         </button>
         <Link href="/app/campaigns/new/preflight" className="btn btn-ghost no-underline">
-          ← Back to preflight
+          <ArrowLeft />
+          Back to preflight
         </Link>
       </div>
     </Shell>

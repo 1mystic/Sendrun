@@ -42,7 +42,7 @@ if _settings.rate_limit_enabled:
 # must be an explicit allowlist regardless.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[_settings.frontend_origin],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

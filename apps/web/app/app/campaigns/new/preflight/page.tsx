@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Shell from "@/components/Shell";
-import { SectionLabel } from "@/components/ui";
+import { ArrowLeft, ArrowRight, SectionLabel } from "@/components/ui";
 import { PREFLIGHT } from "@/lib/mock";
 import type { PreflightCheck } from "@/lib/types";
 import { getCampaignDraft, getCurrentOrgId, runPreflight, useMocks, type CheckOut } from "@/lib/api";
@@ -78,7 +78,8 @@ export default function PreflightPage() {
       <Shell crumb="Preflight">
         <p style={{ color: "var(--color-crit)" }}>{error}</p>
         <Link href="/app/campaigns/new" className="btn btn-ghost no-underline">
-          ← Back to compose
+          <ArrowLeft />
+          Back to compose
         </Link>
       </Shell>
     );
@@ -228,10 +229,12 @@ export default function PreflightPage() {
       <div className="h-6" />
       <div className="flex flex-wrap items-center gap-[9px]">
         <Link href="/app/campaigns/new/approve" className="btn no-underline">
-          Continue to approval →
+          Continue to approval
+          <ArrowRight />
         </Link>
         <Link href="/app/campaigns/new" className="btn btn-ghost no-underline">
-          ← Back to compose
+          <ArrowLeft />
+          Back to compose
         </Link>
       </div>
     </Shell>

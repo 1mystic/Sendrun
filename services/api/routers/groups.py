@@ -50,6 +50,7 @@ class GroupOut(BaseModel):
 class GroupDetailOut(BaseModel):
     id: str
     name: str
+    contact_count: int
     contacts: list[ContactOut]
 
 
@@ -122,7 +123,7 @@ async def get_group(
     )
     contacts = (await db.execute(stmt)).scalars().all()
     return GroupDetailOut(
-        id=str(group.id), name=group.name,
+        id=str(group.id), name=group.name, contact_count=len(contacts),
         contacts=[await _to_out(db, c) for c in contacts],
     )
 

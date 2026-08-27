@@ -9,13 +9,42 @@ import asyncio
 import logging
 from typing import Any
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from packages.durable.worker import Worker, WorkerConfig
 from packages.shared.config import get_settings
 from packages.shared.db import get_sessionmaker
 from packages.shared.job_store import SQLAlchemyJobStore
+from packages.shared.models import Campaign, Organization
 from services.worker.tasks.send import send_email_task
 
 log = logging.getLogger("sendrun.worker")
+
+
+async def _resolve_sending_identity(
+    db: AsyncSession, campaign_id: str, settings,
+) -> tuple[str, str | None]:
+    """Org-level from/reply-to, falling back to the global default (Settings)
+    when an org hasn't configured one — see Organization.from_address's NULL
+    comment in models.py. Postgres is the source of truth for this, so it's
+    resolved fresh per send rather than cached at launch time; an admin who
+    changes it mid-campaign affects only sends still in flight, never a
+    rewrite of what already went out."""
+    org = (
+        await db.execute(
+            select(Organization)
+            .join(Campaign, Campaign.org_id == Organization.id)
+            .where(Campaign.id == campaign_id)
+        )
+    ).scalar_one_or_none()
+
+    if org is None:
+        return settings.from_address, None
+
+    from_name = org.from_name or settings.from_name
+    from_addr = org.from_address or settings.from_address
+    return f"{from_name} <{from_addr}>" if from_name else from_addr, org.reply_to_address
 
 
 def get_provider():
@@ -49,9 +78,12 @@ async def handle_send_email(payload: dict[str, Any]) -> None:
     async with sessionmaker() as db:
         store = SQLAlchemyJobStore(db)
         try:
+            from_addr, reply_to = await _resolve_sending_identity(
+                db, str(payload.get("campaign_id", "")), settings,
+            )
             await send_email_task(
                 payload, store=store, provider=provider,
-                worker_id=settings.worker_id, from_addr=settings.from_address,
+                worker_id=settings.worker_id, from_addr=from_addr, reply_to=reply_to,
                 attempt=1,  # the durable task's own `attempt` governs retry count, not this
             )
         finally:

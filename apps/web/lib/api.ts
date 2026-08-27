@@ -105,6 +105,9 @@ export interface OrgOut {
   name: string;
   slug: string;
   role: string;
+  from_address: string | null;
+  from_name: string | null;
+  reply_to_address: string | null;
 }
 
 export interface MemberOut {
@@ -119,7 +122,12 @@ export async function createOrganization(name: string): Promise<OrgOut> {
 }
 
 export async function listMyOrganizations(): Promise<OrgOut[]> {
-  if (useMocks) return [{ id: "mock-org", name: ORG.name, slug: "mock-org", role: ORG.role }];
+  if (useMocks) {
+    return [{
+      id: "mock-org", name: ORG.name, slug: "mock-org", role: ORG.role,
+      from_address: null, from_name: null, reply_to_address: null,
+    }];
+  }
   return request<OrgOut[]>("/api/organizations");
 }
 
@@ -530,10 +538,17 @@ export type { ProgressSnapshot };
 // Organization settings — services/api/routers/organizations.py
 // ─────────────────────────────────────────────────────────────────────────
 
-export async function updateOrganization(orgId: string, name: string): Promise<OrgOut> {
+export interface UpdateOrgFields {
+  name: string;
+  from_address?: string | null;
+  from_name?: string | null;
+  reply_to_address?: string | null;
+}
+
+export async function updateOrganization(orgId: string, fields: UpdateOrgFields): Promise<OrgOut> {
   return request<OrgOut>(`/api/organizations/${orgId}`, {
     method: "PATCH",
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(fields),
   });
 }
 

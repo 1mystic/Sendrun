@@ -126,6 +126,9 @@ function LiveJobsPage() {
           <p className="text-faint mt-2.5" style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem" }}>
             This is a read-only inspector. Requeueing a dead task is not exposed here — the
             durable engine&rsquo;s own retry/backoff machinery already owns that decision.
+            The durable engine&rsquo;s task table is Postgres-only — against a local SQLite
+            database (the default for `uv run uvicorn` without DATABASE_URL set) both lists
+            above are always empty by design, not a sign nothing is running.
           </p>
         </>
       )}
